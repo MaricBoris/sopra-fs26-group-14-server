@@ -46,6 +46,7 @@ public class UserService {
         // Check 409
 		checkIfUserExists(newUser);
 
+        // 201
         newUser.setToken(UUID.randomUUID().toString());
         // saves the given entity but data is only persisted in the database once
 		// flush() is called
@@ -56,6 +57,25 @@ public class UserService {
 		return newUser;
 	}
 
+    public User loginUser(User userToLogin) {
+        // Check 400
+        if (userToLogin.getUsername() == null || userToLogin.getUsername().isBlank() ||
+                userToLogin.getPassword() == null || userToLogin.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password cannot be empty!");
+        }
+
+        // Check 401
+        User userByUsername = userRepository.findByUsername(userToLogin.getUsername());
+        if (userByUsername == null || !userByUsername.getPassword().equals(userToLogin.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password.");
+        }
+
+        // 200
+        userByUsername.setToken(UUID.randomUUID().toString());
+        userByUsername = userRepository.save(userByUsername);
+        userRepository.flush();
+        return userByUsername;
+    }
 	/**
 	 * This is a helper method that will check the uniqueness criteria of the
 	 * username and the name
