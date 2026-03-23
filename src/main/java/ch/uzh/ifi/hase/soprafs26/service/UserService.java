@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 
@@ -39,9 +38,16 @@ public class UserService {
 	}
 
 	public User createUser(User newUser) {
-		newUser.setToken(UUID.randomUUID().toString());
+        // Check 400
+        if (newUser.getUsername() == null || newUser.getUsername().isBlank() ||
+                newUser.getPassword() == null || newUser.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password cannot be empty!");
+        }
+        // Check 409
 		checkIfUserExists(newUser);
-		// saves the given entity but data is only persisted in the database once
+
+        newUser.setToken(UUID.randomUUID().toString());
+        // saves the given entity but data is only persisted in the database once
 		// flush() is called
 		newUser = userRepository.save(newUser);
 		userRepository.flush();
