@@ -8,6 +8,7 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,5 +66,12 @@ public class UserController {
         User createdUser = userService.loginUser(userInput);
 
         return DTOMapper.INSTANCE.convertEntityToUserGetDTO(createdUser);
+    }
+
+    @PostMapping("/users/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @ResponseBody
+    public void logout(@RequestHeader("Authorization") String bearerToken) {
+        userService.logoutUser(bearerToken);
     }
 }

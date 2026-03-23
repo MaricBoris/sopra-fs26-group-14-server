@@ -76,6 +76,27 @@ public class UserService {
         userRepository.flush();
         return userByUsername;
     }
+
+    public void logoutUser(String bearerToken) {
+        String token;
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            token = bearerToken.substring(7);
+        }
+        else{
+            return;
+        }
+
+        User userToLogout = userRepository.findByToken(token);
+
+        if (userToLogout == null) {
+            return;
+        }
+
+        userToLogout.setToken(UUID.randomUUID().toString());
+
+        userRepository.save(userToLogout);
+        userRepository.flush();
+    }
 	/**
 	 * This is a helper method that will check the uniqueness criteria of the
 	 * username and the name
@@ -93,5 +114,14 @@ public class UserService {
             String errorMessage = "The username provided is not unique. Therefore, the user could not be created!";
             throw new ResponseStatusException(HttpStatus.CONFLICT, errorMessage);
         }
+    }
+
+    private String extractToken(String bearerToken) {
+        String token;
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            token = bearerToken.substring(7);
+            return token;
+        }
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing session token. Go to login and clear local Storage!");
     }
 }
