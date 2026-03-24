@@ -100,6 +100,25 @@ public class UserControllerTest {
     }
 
     @Test
+    public void createUser_emptyFields_400BadRequest() throws Exception {
+        // given
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername(""); // Blank username
+
+        given(userService.createUser(Mockito.any()))
+                .willThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password cannot be empty!"));
+
+        // when
+        MockHttpServletRequestBuilder postRequest = post("/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     public void createUser_duplicateUsername_409Conflict() throws Exception {
         // given
         UserPostDTO userPostDTO = new UserPostDTO();
@@ -191,19 +210,25 @@ public class UserControllerTest {
     // --- POST /users/logout ---
 
     @Test
-    public void logoutUser_anyInput_always204NoContent() throws Exception {
-        // Test Case 1: Valid Header
-        // when
-        MockHttpServletRequestBuilder validRequest = post("/users/logout")
+    public void logoutUser_validToken_204NoContent() throws Exception {
+        // given
+        MockHttpServletRequestBuilder postRequest = post("/users/logout")
                 .header("Authorization", "Bearer some-token");
-        // then
-        mockMvc.perform(validRequest).andExpect(status().isNoContent());
 
-        // Test Case 2: Missing Header entirely (still 204 because required=false)
-        // when
-        MockHttpServletRequestBuilder missingHeaderRequest = post("/users/logout");
         // then
-        mockMvc.perform(missingHeaderRequest).andExpect(status().isNoContent());
+        mockMvc.perform(postRequest)
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    public void logoutUser_missingToken_204NoContent() throws Exception {
+        // given
+        // No header is provided at all
+        MockHttpServletRequestBuilder postRequest = post("/users/logout");
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isNoContent());
     }
 
 	/**
