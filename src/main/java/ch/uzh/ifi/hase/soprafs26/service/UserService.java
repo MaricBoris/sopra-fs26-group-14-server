@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 
@@ -39,10 +38,17 @@ public class UserService {
 	}
 
 	public User createUser(User newUser) {
-		newUser.setToken(UUID.randomUUID().toString());
-		newUser.setStatus(UserStatus.OFFLINE);
+        // Check 400
+        if (newUser.getUsername() == null || newUser.getUsername().isBlank() ||
+                newUser.getPassword() == null || newUser.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password cannot be empty!");
+        }
+        // Check 409
 		checkIfUserExists(newUser);
-		// saves the given entity but data is only persisted in the database once
+
+        // 201
+        newUser.setToken(UUID.randomUUID().toString());
+        // saves the given entity but data is only persisted in the database once
 		// flush() is called
 		newUser = userRepository.save(newUser);
 		userRepository.flush();
@@ -51,6 +57,46 @@ public class UserService {
 		return newUser;
 	}
 
+    public User loginUser(User userToLogin) {
+        // Check 400
+        if (userToLogin.getUsername() == null || userToLogin.getUsername().isBlank() ||
+                userToLogin.getPassword() == null || userToLogin.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password cannot be empty!");
+        }
+
+        // Check 401
+        User userByUsername = userRepository.findByUsername(userToLogin.getUsername());
+        if (userByUsername == null || !userByUsername.getPassword().equals(userToLogin.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password.");
+        }
+
+        // 200
+        userByUsername.setToken(UUID.randomUUID().toString());
+        userByUsername = userRepository.save(userByUsername);
+        userRepository.flush();
+        return userByUsername;
+    }
+
+    public void logoutUser(String bearerToken) {
+        String token;
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            token = bearerToken.substring(7);
+        }
+        else{
+            return;
+        }
+
+        User userToLogout = userRepository.findByToken(token);
+
+        if (userToLogout == null) {
+            return;
+        }
+
+        userToLogout.setToken(UUID.randomUUID().toString());
+
+        userRepository.save(userToLogout);
+        userRepository.flush();
+    }
 	/**
 	 * This is a helper method that will check the uniqueness criteria of the
 	 * username and the name
@@ -61,18 +107,21 @@ public class UserService {
 	 * @throws org.springframework.web.server.ResponseStatusException
 	 * @see User
 	 */
-	private void checkIfUserExists(User userToBeCreated) {
-		User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
-		User userByName = userRepository.findByName(userToBeCreated.getName());
+    private void checkIfUserExists(User userToBeCreated) {
+        User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
 
-		String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
-		if (userByUsername != null && userByName != null) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-					String.format(baseErrorMessage, "username and the name", "are"));
-		} else if (userByUsername != null) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username", "is"));
-		} else if (userByName != null) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "name", "is"));
-		}
-	}
+        if (userByUsername != null) {
+            String errorMessage = "The username provided is not unique. Therefore, the user could not be created!";
+            throw new ResponseStatusException(HttpStatus.CONFLICT, errorMessage);
+        }
+    }
+
+    private String extractToken(String bearerToken) {
+        String token;
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            token = bearerToken.substring(7);
+            return token;
+        }
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing session token. Go to login and clear local Storage!");
+    }
 }
