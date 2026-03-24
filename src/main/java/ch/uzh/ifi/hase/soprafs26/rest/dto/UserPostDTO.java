@@ -6,6 +6,10 @@ public class UserPostDTO {
 
     private String password;
 
+	private String bio;
+
+
+
 	public String getUsername() {
 		return username;
 	}
@@ -17,4 +21,8 @@ public class UserPostDTO {
     public String getPassword() { return password; }
 
     public void setPassword(String password) { this.password = password; }
+
+	public String getBio() { return bio; }
+
+    public void setBio(String bio) { this.bio = bio; }
 }

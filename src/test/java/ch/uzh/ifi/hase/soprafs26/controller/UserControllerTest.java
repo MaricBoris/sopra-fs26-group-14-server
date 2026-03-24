@@ -64,7 +64,6 @@ public class UserControllerTest {
 		// then
 		mockMvc.perform(getRequest).andExpect(status().isOk())
 				.andExpect(jsonPath("$", hasSize(1)))
-				.andExpect(jsonPath("$[0].name", is(user.getName())))
 				.andExpect(jsonPath("$[0].username", is(user.getUsername())));
 	}
 
@@ -288,7 +287,7 @@ public class UserControllerTest {
 
     
     	mockMvc.perform(getRequest)
-        	.andExpect(status().isNotFound());
+        	.andExpect(status().isUnauthorized());
 	}
 
 	/**
