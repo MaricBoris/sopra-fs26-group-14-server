@@ -50,9 +50,7 @@ public class UserControllerTest {
 	public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
 		// given
 		User user = new User();
-		user.setName("Firstname Lastname");
 		user.setUsername("firstname@lastname");
-		user.setStatus(UserStatus.OFFLINE);
 
 		List<User> allUsers = Collections.singletonList(user);
 
@@ -66,40 +64,172 @@ public class UserControllerTest {
 		// then
 		mockMvc.perform(getRequest).andExpect(status().isOk())
 				.andExpect(jsonPath("$", hasSize(1)))
-				.andExpect(jsonPath("$[0].name", is(user.getName())))
-				.andExpect(jsonPath("$[0].username", is(user.getUsername())))
-				.andExpect(jsonPath("$[0].status", is(user.getStatus().toString())));
+				.andExpect(jsonPath("$[0].username", is(user.getUsername())));
 	}
 
-	@Test
-	public void createUser_validInput_userCreated() throws Exception {
-		// given
-		User user = new User();
-		user.setId(1L);
-		user.setName("Test User");
-		user.setUsername("testUsername");
-		user.setToken("1");
-		user.setStatus(UserStatus.ONLINE);
+    // --- POST /users (Registration) ---
 
-		UserPostDTO userPostDTO = new UserPostDTO();
-		userPostDTO.setName("Test User");
-		userPostDTO.setUsername("testUsername");
+    @Test
+    public void createUser_validInput_201Created() throws Exception {
+        // given
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("testUser");
+        user.setPassword("password123");
+        user.setToken("token-123");
+        user.setBio("my bio");
 
-		given(userService.createUser(Mockito.any())).willReturn(user);
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername("testUser");
+        userPostDTO.setPassword("password123");
 
-		// when/then -> do the request + validate the result
-		MockHttpServletRequestBuilder postRequest = post("/users")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(asJsonString(userPostDTO));
+        given(userService.createUser(Mockito.any())).willReturn(user);
 
-		// then
-		mockMvc.perform(postRequest)
-				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.id", is(user.getId().intValue())))
-				.andExpect(jsonPath("$.name", is(user.getName())))
-				.andExpect(jsonPath("$.username", is(user.getUsername())))
-				.andExpect(jsonPath("$.status", is(user.getStatus().toString())));
-	}
+        // when
+        MockHttpServletRequestBuilder postRequest = post("/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", is(user.getId().intValue())))
+                .andExpect(jsonPath("$.username", is(user.getUsername())))
+                .andExpect(jsonPath("$.token", is(user.getToken())))
+                .andExpect(jsonPath("$.bio", is(user.getBio())));
+    }
+
+    @Test
+    public void createUser_emptyFields_400BadRequest() throws Exception {
+        // given
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername(""); // Blank username
+
+        given(userService.createUser(Mockito.any()))
+                .willThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password cannot be empty!"));
+
+        // when
+        MockHttpServletRequestBuilder postRequest = post("/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void createUser_duplicateUsername_409Conflict() throws Exception {
+        // given
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername("existingUser");
+        userPostDTO.setPassword("password123");
+
+        given(userService.createUser(Mockito.any()))
+                .willThrow(new ResponseStatusException(HttpStatus.CONFLICT, "The username provided is not unique."));
+
+        // when
+        MockHttpServletRequestBuilder postRequest = post("/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isConflict());
+    }
+
+    // --- POST /users/login ---
+
+    @Test
+    public void loginUser_validCredentials_200Ok() throws Exception {
+        // given
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("testUser");
+        user.setPassword("password123");
+        user.setToken("login-token");
+        user.setBio("my bio");
+
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername("testUser");
+        userPostDTO.setPassword("password123");
+
+        given(userService.loginUser(Mockito.any())).willReturn(user);
+
+        // when
+        MockHttpServletRequestBuilder postRequest = post("/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token", is(user.getToken())))
+                .andExpect(jsonPath("$.username", is(user.getUsername())));
+    }
+
+    @Test
+    public void loginUser_invalidCredentials_401Unauthorized() throws Exception {
+        // given
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername("wrongUser");
+        userPostDTO.setPassword("wrongPass");
+
+        given(userService.loginUser(Mockito.any()))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password."));
+
+        // when
+        MockHttpServletRequestBuilder postRequest = post("/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void loginUser_emptyFields_400BadRequest() throws Exception {
+        // given
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername(""); // Empty username
+
+        given(userService.loginUser(Mockito.any()))
+                .willThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password cannot be empty!"));
+
+        // when
+        MockHttpServletRequestBuilder postRequest = post("/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isBadRequest());
+    }
+
+    // --- POST /users/logout ---
+
+    @Test
+    public void logoutUser_validToken_204NoContent() throws Exception {
+        // given
+        MockHttpServletRequestBuilder postRequest = post("/users/logout")
+                .header("Authorization", "Bearer some-token");
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    public void logoutUser_missingToken_204NoContent() throws Exception {
+        // given
+        // No header is provided at all
+        MockHttpServletRequestBuilder postRequest = post("/users/logout");
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isNoContent());
+    }
 
 	/**
 	 * Helper Method to convert userPostDTO into a JSON string such that the input
