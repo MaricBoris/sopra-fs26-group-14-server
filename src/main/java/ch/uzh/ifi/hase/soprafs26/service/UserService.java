@@ -147,7 +147,7 @@ public class UserService {
 		return userByToken;
 	}
 
-	public Boolean checkUsersMatch(User user1, User user2) {
+	public void checkUsersMatch(User user1, User user2) {
 		String baseErrorMessage = "Error: You are not Autorized. Go to login and clear local Storage";
 		if(!(user1.getId() == user2.getId()) && (user1.getToken() == user2.getToken())) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, String.format(baseErrorMessage));
