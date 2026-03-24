@@ -75,11 +75,15 @@ public class User implements Serializable {
 
     public void setPassword(String password) { this.password = password; }
 
-//    public String getPassword() { return history; }
-
-//    public void setPassword(String password) { this.history = history; }
-
     public Date getCreationDate() { return creationDate; }
 
     public void setCreationDate(Date creationDate) { this.creationDate = creationDate; }
+
+	/*public History getHistory() {
+		return history;
+	}
+
+	public void setHystory(Hystory hystory) {
+		this.history = history;
+	}*/
 }

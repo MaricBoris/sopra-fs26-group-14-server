@@ -257,6 +257,7 @@ public class UserControllerTest {
         	.andExpect(jsonPath("$.bio", is(user.getBio())));
 	}
 
+	@Test
 	public void getUser_invalidId_returns404() throws Exception {
     
     	given(userService.findUserFromId(Mockito.any()))
@@ -273,6 +274,7 @@ public class UserControllerTest {
         	.andExpect(status().isNotFound());
 	}
 
+	@Test
 	public void getUser_Unauthorized_returns401() throws Exception {
     
     	given(userService.findUserFromId(Mockito.any()))
