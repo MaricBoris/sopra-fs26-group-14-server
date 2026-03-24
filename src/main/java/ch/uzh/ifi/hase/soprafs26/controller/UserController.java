@@ -72,7 +72,7 @@ public class UserController {
     @PostMapping("/users/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @ResponseBody
-    public void logout(@RequestHeader("Authorization") String bearerToken) {
+    public void logout(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
         userService.logoutUser(bearerToken);
     }
 }
