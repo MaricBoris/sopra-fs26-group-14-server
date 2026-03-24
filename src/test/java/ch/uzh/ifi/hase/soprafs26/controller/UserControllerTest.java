@@ -64,6 +64,7 @@ public class UserControllerTest {
 		// then
 		mockMvc.perform(getRequest).andExpect(status().isOk())
 				.andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].name", is(user.getName())))
 				.andExpect(jsonPath("$[0].username", is(user.getUsername())));
 	}
 
@@ -231,6 +232,63 @@ public class UserControllerTest {
                 .andExpect(status().isNoContent());
     }
 
+	@Test
+	public void getUser_validId_returnsUser() throws Exception {
+		//ADD OTHER USER ATTRIBUTES
+   		User user = new User();
+    	user.setId(1L);
+    	user.setBio("Test Bio");
+    	user.setUsername("testUsername");
+
+    	given(userService.findUserFromId(1L)).willReturn(user);
+    	given(userService.findUserFromToken(Mockito.any())).willReturn(user);
+
+    
+    	MockHttpServletRequestBuilder getRequest = get("/users/1")
+        	.contentType(MediaType.APPLICATION_JSON)
+        	.header("Authorization", "Bearer testToken");
+
+    
+    	mockMvc.perform(getRequest)
+        	.andExpect(status().isOk())
+        	.andExpect(jsonPath("$.id", is(user.getId().intValue())))
+        	.andExpect(jsonPath("$.username", is(user.getUsername())))
+			.andExpect(jsonPath("$.token", is(user.getToken())))
+        	.andExpect(jsonPath("$.bio", is(user.getBio())));
+	}
+
+	public void getUser_invalidId_returns404() throws Exception {
+    
+    	given(userService.findUserFromId(Mockito.any()))
+        	.willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    	given(userService.findUserFromToken(Mockito.any())).willReturn(new User());
+
+    
+    	MockHttpServletRequestBuilder getRequest = get("/users/99")
+        	.contentType(MediaType.APPLICATION_JSON)
+        	.header("Authorization", "Bearer testToken");
+
+    
+    	mockMvc.perform(getRequest)
+        	.andExpect(status().isNotFound());
+	}
+
+	public void getUser_Unauthorized_returns401() throws Exception {
+    
+    	given(userService.findUserFromId(Mockito.any()))
+        	.willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
+    	given(userService.findUserFromToken(Mockito.any())).willReturn(new User());
+
+    
+    	MockHttpServletRequestBuilder getRequest = get("/users/99")
+        	.contentType(MediaType.APPLICATION_JSON)
+        	.header("Authorization", "Bearer testToken");
+
+    
+    	mockMvc.perform(getRequest)
+        	.andExpect(status().isNotFound());
+	}
+
 	/**
 	 * Helper Method to convert userPostDTO into a JSON string such that the input
 	 * can be processed
@@ -247,4 +305,5 @@ public class UserControllerTest {
 					String.format("The request body could not be created.%s", e.toString()));
 		}
 	}
+	
 }
