@@ -47,6 +47,8 @@ public class UserControllerTest {
 	@MockitoBean
 	private UserService userService;
 
+        // --- GET /users ---
+
 	@Test
 	public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
 		// given
@@ -67,6 +69,39 @@ public class UserControllerTest {
 				.andExpect(jsonPath("$", hasSize(1)))
 				.andExpect(jsonPath("$[0].username", is(user.getUsername())));
 	}
+
+        //Test for missing header
+        @Test
+        public void givenNoAuthorizationHeader_whenGetUsers_thenReturn401() throws Exception {
+                // given
+                given(userService.getUsers(null))
+                        .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
+
+                // when
+                MockHttpServletRequestBuilder getRequest = get("/users")
+                        .contentType(MediaType.APPLICATION_JSON);
+
+                // then
+                mockMvc.perform(getRequest)
+                        .andExpect(status().isUnauthorized());
+        }
+
+        //Test for invalid token
+        @Test
+        public void givenInvalidToken_whenGetUsers_thenReturn401() throws Exception {
+                // given
+                given(userService.getUsers(anyString()))
+                        .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"));
+
+                // when
+                MockHttpServletRequestBuilder getRequest = get("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer invalid-token");
+
+                // then
+                mockMvc.perform(getRequest)
+                        .andExpect(status().isUnauthorized());
+        }
 
     // --- POST /users (Registration) ---
 
