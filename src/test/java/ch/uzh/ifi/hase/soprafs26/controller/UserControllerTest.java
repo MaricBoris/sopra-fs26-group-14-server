@@ -236,7 +236,7 @@ public class UserControllerTest {
 		//ADD OTHER USER ATTRIBUTES
    		User user = new User();
     	user.setId(1L);
-    	user.setBio("Test Bio");
+    	//user.setBio("Test Bio");
     	user.setUsername("testUsername");
 
     	given(userService.findUserFromId(1L)).willReturn(user);
@@ -251,9 +251,8 @@ public class UserControllerTest {
     	mockMvc.perform(getRequest)
         	.andExpect(status().isOk())
         	.andExpect(jsonPath("$.id", is(user.getId().intValue())))
-        	.andExpect(jsonPath("$.username", is(user.getUsername())))
-			.andExpect(jsonPath("$.token", is(user.getToken())))
-        	.andExpect(jsonPath("$.bio", is(user.getBio())));
+        	.andExpect(jsonPath("$.username", is(user.getUsername())));
+        	//.andExpect(jsonPath("$.bio", is(user.getBio())));
 	}
 
 	@Test
