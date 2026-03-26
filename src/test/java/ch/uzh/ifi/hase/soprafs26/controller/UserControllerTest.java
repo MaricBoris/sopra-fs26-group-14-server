@@ -25,6 +25,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -56,10 +57,10 @@ public class UserControllerTest {
 
 		// this mocks the UserService -> we define above what the userService should
 		// return when getUsers() is called
-		given(userService.getUsers()).willReturn(allUsers);
+		given(userService.getUsers(anyString())).willReturn(allUsers);
 
 		// when
-		MockHttpServletRequestBuilder getRequest = get("/users").contentType(MediaType.APPLICATION_JSON);
+		MockHttpServletRequestBuilder getRequest = get("/users").contentType(MediaType.APPLICATION_JSON).header("Authorization", "Bearer some-token");
 
 		// then
 		mockMvc.perform(getRequest).andExpect(status().isOk())
