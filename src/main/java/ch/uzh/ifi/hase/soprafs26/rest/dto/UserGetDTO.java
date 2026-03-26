@@ -6,7 +6,8 @@ public class UserGetDTO {
 
 	private Long id;
 	private String username;
-	
+	private String bio;
+ 	//private History history;
 
 	public Long getId() {
 		return id;
@@ -23,6 +24,20 @@ public class UserGetDTO {
 	public void setUsername(String username) {
 		this.username = username;
 	}
+	public String getBio() {
+		return bio;
+	}
 
+	public void setBio(String bio) {
+		this.bio = bio;
+	}
+
+	/*public History getHistory() {
+		return history;
+	}
+
+	public void setHistory(History history) {
+		this.history = history;
+	}*/
 	
 }
