@@ -79,7 +79,7 @@ public class UserController {
 	@GetMapping("/users/{id}")
 	@ResponseStatus(HttpStatus.OK)
 	@ResponseBody
-	public UserPersonalGetDTO findUserFromId(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
+	public UserGetDTO findUserFromId(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
 		User foundUserId = userService.findUserFromId(id);
 
 		String token = authHeader;
@@ -91,6 +91,6 @@ public class UserController {
 
 		userService.checkUsersMatch(foundUserId, foundUserToken);
 
-		return DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(foundUserId);
+		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(foundUserId);
 	}
 }
