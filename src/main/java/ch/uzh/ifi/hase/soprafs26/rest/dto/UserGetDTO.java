@@ -1,13 +1,14 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto;
 
-import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
+import java.util.Date;
 
 public class UserGetDTO {
 
 	private Long id;
-	private String username;
 	private String bio;
- 	//private History history;
+	private String username;
+	private Date creationDate;
+	//private History history;
 
 	public Long getId() {
 		return id;
@@ -17,6 +18,14 @@ public class UserGetDTO {
 		this.id = id;
 	}
 
+	public String getBio() {
+		return bio;
+	}
+
+	public void setBio(String name) {
+		this.bio = name;
+	}
+
 	public String getUsername() {
 		return username;
 	}
@@ -24,20 +33,13 @@ public class UserGetDTO {
 	public void setUsername(String username) {
 		this.username = username;
 	}
-	public String getBio() {
-		return bio;
-	}
 
-	public void setBio(String bio) {
-		this.bio = bio;
-	}
+    public Date getCreationDate() {
+        return creationDate;
+    }
 
-	/*public History getHistory() {
-		return history;
-	}
+    public void setCreationDate(Date creationDate) { this.creationDate = creationDate; }
 
-	public void setHistory(History history) {
-		this.history = history;
-	}*/
-	
+	//public History getHistory() { return history; }
+    //public void setHistory(History history) { this.history = history; }
 }
