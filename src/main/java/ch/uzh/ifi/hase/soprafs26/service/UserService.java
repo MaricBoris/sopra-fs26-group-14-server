@@ -32,6 +32,7 @@ public class UserService {
 	public UserService(@Qualifier("userRepository") UserRepository userRepository) {
 		this.userRepository = userRepository;
 	}
+
 	public List<User> getUsers(String bearerToken) {
         
         if (bearerToken == null || bearerToken.isBlank()) {
@@ -142,4 +143,38 @@ public class UserService {
         }
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing session token. Go to login and clear local Storage!");
     }
+	
+
+	public User findUserFromId(Long id) {
+
+		String baseErrorMessage = "Error: The provided id: %s is invalid and doesn't match any user.";
+		User userById = userRepository.findById(id).orElseThrow(() ->     //Needs this notation cause .findByID(id) returns a <Optional> User. All other find by are self implemented and will return a User or Null
+		new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(baseErrorMessage, id))); //NOT_FOUND 404
+
+		return userById; 
+    }
+
+	public User findUserFromToken(String token) {
+       
+		User userByToken = userRepository.findByToken(token);
+
+		String baseErrorMessage = "Error: You are not Autorized. Go to login and clear local Storage";
+		if (userByToken == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, String.format(baseErrorMessage));
+		}
+
+		return userByToken;
+	}
+
+	public void checkUsersMatch(User user1, User user2) {
+		String baseErrorMessage = "Error: You are not Autorized. Go to login and clear local Storage";
+		if(!((user1.getId() == user2.getId()) && (user1.getToken() == user2.getToken()))) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, String.format(baseErrorMessage));
+		}
+	}
+
+
+
+
+
 }

@@ -33,11 +33,11 @@ public class UserController {
 	@GetMapping("/users")
 	@ResponseStatus(HttpStatus.OK)
 	@ResponseBody
-	public List<UserGetDTO> getAllUsers(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
+		public List<UserGetDTO> getAllUsers(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
 		// fetch all users in the internal representation
 		List<User> users = userService.getUsers(bearerToken);
 		List<UserGetDTO> userGetDTOs = new ArrayList<>();
-
+      
 		// convert each user to the API representation
 		for (User user : users) {
 			userGetDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(user));
@@ -75,4 +75,22 @@ public class UserController {
     public void logout(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
         userService.logoutUser(bearerToken);
     }
+
+	@GetMapping("/users/{id}")
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public UserGetDTO findUserFromId(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
+		User foundUserId = userService.findUserFromId(id);
+
+		String token = authHeader;
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
+		User foundUserToken = userService.findUserFromToken(token);
+
+		userService.checkUsersMatch(foundUserId, foundUserToken);
+
+		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(foundUserId);
+	}
 }
