@@ -33,7 +33,26 @@ public class UserService {
 		this.userRepository = userRepository;
 	}
 
-	public List<User> getUsers() {
+	public List<User> getUsers(String bearerToken) {
+        
+        if (bearerToken == null || bearerToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"); //Check 401
+        }
+
+        if (!bearerToken.startsWith("Bearer ")) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Authentication header"); //Check 401
+        }
+
+        String token = bearerToken.substring(7);
+
+        if (token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"); //Check 401
+        }
+
+        User user = userRepository.findByToken(token);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"); //Check 401
+        }
 		return this.userRepository.findAll();
 	}
 

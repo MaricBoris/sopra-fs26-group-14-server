@@ -25,6 +25,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -46,6 +47,8 @@ public class UserControllerTest {
 	@MockitoBean
 	private UserService userService;
 
+        // --- GET /users ---
+
 	@Test
 	public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
 		// given
@@ -56,16 +59,49 @@ public class UserControllerTest {
 
 		// this mocks the UserService -> we define above what the userService should
 		// return when getUsers() is called
-		given(userService.getUsers()).willReturn(allUsers);
+		given(userService.getUsers(anyString())).willReturn(allUsers);
 
 		// when
-		MockHttpServletRequestBuilder getRequest = get("/users").contentType(MediaType.APPLICATION_JSON);
+		MockHttpServletRequestBuilder getRequest = get("/users").contentType(MediaType.APPLICATION_JSON).header("Authorization", "Bearer some-token");
 
 		// then
 		mockMvc.perform(getRequest).andExpect(status().isOk())
 				.andExpect(jsonPath("$", hasSize(1)))
 				.andExpect(jsonPath("$[0].username", is(user.getUsername())));
 	}
+
+        //Test for missing header
+        @Test
+        public void givenNoAuthorizationHeader_whenGetUsers_thenReturn401() throws Exception {
+                // given
+                given(userService.getUsers(null))
+                        .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
+
+                // when
+                MockHttpServletRequestBuilder getRequest = get("/users")
+                        .contentType(MediaType.APPLICATION_JSON);
+
+                // then
+                mockMvc.perform(getRequest)
+                        .andExpect(status().isUnauthorized());
+        }
+
+        //Test for invalid token
+        @Test
+        public void givenInvalidToken_whenGetUsers_thenReturn401() throws Exception {
+                // given
+                given(userService.getUsers(anyString()))
+                        .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"));
+
+                // when
+                MockHttpServletRequestBuilder getRequest = get("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer invalid-token");
+
+                // then
+                mockMvc.perform(getRequest)
+                        .andExpect(status().isUnauthorized());
+        }
 
     // --- POST /users (Registration) ---
 
@@ -230,10 +266,10 @@ public class UserControllerTest {
         mockMvc.perform(postRequest)
                 .andExpect(status().isNoContent());
     }
-
-	@Test
-	public void getUser_validId_returnsUser() throws Exception {
-		//ADD OTHER USER ATTRIBUTES
+  
+  	@Test
+	  public void getUser_validId_returnsUser() throws Exception {
+		  //ADD OTHER USER ATTRIBUTES
    		User user = new User();
     	user.setId(1L);
     	//user.setBio("Test Bio");
@@ -254,9 +290,9 @@ public class UserControllerTest {
         	.andExpect(jsonPath("$.username", is(user.getUsername())));
         	//.andExpect(jsonPath("$.bio", is(user.getBio())));
 	}
-
-	@Test
-	public void getUser_invalidId_returns404() throws Exception {
+  
+  	@Test
+	  public void getUser_invalidId_returns404() throws Exception {
     
     	given(userService.findUserFromId(Mockito.any()))
         	.willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -271,9 +307,9 @@ public class UserControllerTest {
     	mockMvc.perform(getRequest)
         	.andExpect(status().isNotFound());
 	}
-
-	@Test
-	public void getUser_Unauthorized_returns401() throws Exception {
+  
+  	@Test
+	  public void getUser_Unauthorized_returns401() throws Exception {
     
     	given(userService.findUserFromId(Mockito.any()))
         	.willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
@@ -305,5 +341,4 @@ public class UserControllerTest {
 					String.format("The request body could not be created.%s", e.toString()));
 		}
 	}
-	
 }
