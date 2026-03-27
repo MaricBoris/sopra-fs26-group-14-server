@@ -33,11 +33,11 @@ public class UserController {
 	@GetMapping("/users")
 	@ResponseStatus(HttpStatus.OK)
 	@ResponseBody
-	public List<UserGetDTO> getAllUsers() {
+		public List<UserGetDTO> getAllUsers(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
 		// fetch all users in the internal representation
-		List<User> users = userService.getUsers();
+		List<User> users = userService.getUsers(bearerToken);
 		List<UserGetDTO> userGetDTOs = new ArrayList<>();
-
+      
 		// convert each user to the API representation
 		for (User user : users) {
 			userGetDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(user));
