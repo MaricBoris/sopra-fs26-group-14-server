@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -116,16 +117,31 @@ public class UserService {
         userRepository.save(userToLogout);
         userRepository.flush();
     }
-	/**
-	 * This is a helper method that will check the uniqueness criteria of the
-	 * username and the name
-	 * defined in the User entity. The method will do nothing if the input is unique
-	 * and throw an error otherwise.
-	 *
-	 * @param userToBeCreated
-	 * @throws org.springframework.web.server.ResponseStatusException
-	 * @see User
-	 */
+
+    public User updateUserBio(Long userId, UserPutDTO userPutDTO, String bearerToken) {
+
+        String token = extractToken(bearerToken);
+        User tokenUser = findUserFromToken(token);
+        User user = findUserFromId(userId);
+
+        checkUsersMatch(user, tokenUser);
+        user.setBio(userPutDTO.getBio());
+
+        userRepository.save(user);
+        userRepository.flush();
+
+        return user;
+    }
+        /**
+         * This is a helper method that will check the uniqueness criteria of the
+         * username and the name
+         * defined in the User entity. The method will do nothing if the input is unique
+         * and throw an error otherwise.
+         *
+         * @param userToBeCreated
+         * @throws org.springframework.web.server.ResponseStatusException
+         * @see User
+         */
     private void checkIfUserExists(User userToBeCreated) {
         User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
 

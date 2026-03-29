@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPersonalGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,7 +10,6 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -93,4 +93,14 @@ public class UserController {
 
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(foundUserId);
 	}
-}
+
+    @PutMapping("/users/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public UserPersonalGetDTO updateUserBio(@PathVariable Long userId, @RequestBody UserPutDTO userPutDTO,
+                                            @RequestHeader(value = "Authorization", required = false) String bearerToken) {
+
+            User updatedUser = userService.updateUserBio(userId, userPutDTO, bearerToken);
+            return DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(updatedUser);
+        }
+    }
