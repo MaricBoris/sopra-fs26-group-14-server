@@ -21,39 +21,39 @@ import java.util.List;
 @RestController
 public class UserController {
 
-	private final UserService userService;
+    private final UserService userService;
 
-	UserController(UserService userService) {
-		this.userService = userService;
-	}
+    UserController(UserService userService) {
+        this.userService = userService;
+    }
 
-	@GetMapping("/users")
-	@ResponseStatus(HttpStatus.OK)
-	@ResponseBody
-		public List<UserGetDTO> getAllUsers(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
-		// fetch all users in the internal representation
-		List<User> users = userService.getUsers(bearerToken);
-		List<UserGetDTO> userGetDTOs = new ArrayList<>();
-      
-		// convert each user to the API representation
-		for (User user : users) {
-			userGetDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(user));
-		}
-		return userGetDTOs;
-	}
+    @GetMapping("/users")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public List<UserGetDTO> getAllUsers(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
+        // fetch all users in the internal representation
+        List<User> users = userService.getUsers(bearerToken);
+        List<UserGetDTO> userGetDTOs = new ArrayList<>();
 
-	@PostMapping("/users")
-	@ResponseStatus(HttpStatus.CREATED)
-	@ResponseBody
-	public UserPersonalGetDTO createUser(@RequestBody UserPostDTO userPostDTO) {
-		// convert API user to internal representation
-		User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
+        // convert each user to the API representation
+        for (User user : users) {
+            userGetDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(user));
+        }
+        return userGetDTOs;
+    }
 
-		// create user
-		User createdUser = userService.createUser(userInput);
-		// convert internal representation of user back to API
-		return DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(createdUser);
-	}
+    @PostMapping("/users")
+    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseBody
+    public UserPersonalGetDTO createUser(@RequestBody UserPostDTO userPostDTO) {
+        // convert API user to internal representation
+        User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
+
+        // create user
+        User createdUser = userService.createUser(userInput);
+        // convert internal representation of user back to API
+        return DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(createdUser);
+    }
 
     @PostMapping("/users/login")
     @ResponseStatus(HttpStatus.OK)
@@ -73,39 +73,47 @@ public class UserController {
         userService.logoutUser(bearerToken);
     }
 
-	@GetMapping("/users/{id}")
-	@ResponseStatus(HttpStatus.OK)
-	@ResponseBody
-	public UserGetDTO findUserFromId(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
-		User foundUserId = userService.findUserFromId(id);
+    @GetMapping("/users/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public UserGetDTO findUserFromId(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
+        User foundUserId = userService.findUserFromId(id);
 
-		String token = authHeader;
+        String token = authHeader;
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
 
-		User foundUserToken = userService.findUserFromToken(token);
+        User foundUserToken = userService.findUserFromToken(token);
 
-		userService.checkUsersMatch(foundUserId, foundUserToken);
+        userService.checkUsersMatch(foundUserId, foundUserToken);
 
-		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(foundUserId);
-	}
+        return DTOMapper.INSTANCE.convertEntityToUserGetDTO(foundUserId);
+    }
 
     @PutMapping("/users/{id}/password")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public void changePassword(@PathVariable Long id,
-                               @RequestBody UserPasswordPutDTO passwordDTO,
+    public void changePassword(@PathVariable Long id, @RequestBody UserPasswordPutDTO passwordDTO,
                                @RequestHeader("Authorization") String bearerToken) {
         userService.changePassword(id, passwordDTO, bearerToken);
     }
+
     @PutMapping("/users/{userId}")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public UserPersonalGetDTO updateUserBio(@PathVariable Long userId, @RequestBody UserPutDTO userPutDTO,
                                             @RequestHeader(value = "Authorization", required = false) String bearerToken) {
 
-            User updatedUser = userService.updateUserBio(userId, userPutDTO, bearerToken);
-            return DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(updatedUser);
-        }
+        User updatedUser = userService.updateUserBio(userId, userPutDTO, bearerToken);
+        return DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(updatedUser);
     }
+
+    @DeleteMapping("/users/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @ResponseBody
+    public void deleteUser(@PathVariable Long id, @RequestBody(required = false) UserDeleteDTO deleteDTO,
+                           @RequestHeader("Authorization") String bearerToken) {
+        userService.deleteUser(id, deleteDTO, bearerToken);
+    }
+}

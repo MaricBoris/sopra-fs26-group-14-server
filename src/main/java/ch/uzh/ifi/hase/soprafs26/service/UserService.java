@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserDeleteDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPasswordPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
 import org.slf4j.Logger;
@@ -153,6 +154,25 @@ public class UserService {
         userRepository.flush();
     }
 
+    public void deleteUser(Long userId, UserDeleteDTO deleteDTO, String bearerToken) {
+
+        String token = extractToken(bearerToken);
+        User tokenUser = findUserFromToken(token);
+        User user = findUserFromId(userId);
+        checkUsersMatch(user, tokenUser);
+
+        if (deleteDTO == null || deleteDTO.getPassword() == null || deleteDTO.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Password is required to delete account");
+        }
+
+        if (!user.getPassword().equals(deleteDTO.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password");
+        }
+
+        userRepository.delete(user);
+        userRepository.flush();
+    }
+
 
         /**
          * This is a helper method that will check the uniqueness criteria of the
@@ -196,7 +216,7 @@ public class UserService {
        
 		User userByToken = userRepository.findByToken(token);
 
-		String baseErrorMessage = "Error: You are not Autorized. Go to login and clear local Storage";
+		String baseErrorMessage = "Error: You are not Authorized. Go to login and clear local Storage";
 		if (userByToken == null) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, String.format(baseErrorMessage));
 		}
@@ -210,9 +230,5 @@ public class UserService {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, String.format(baseErrorMessage));
 		}
 	}
-
-
-
-
 
 }
