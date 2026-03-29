@@ -84,9 +84,10 @@ public class UserController {
             token = token.substring(7);
         }
 
-        User foundUserToken = userService.findUserFromToken(token);
+        //User foundUserToken = userService.findUserFromToken(token);
+        //userService.checkUsersMatch(foundUserId, foundUserToken); this check makes it impossible to visit other profiles
 
-        userService.checkUsersMatch(foundUserId, foundUserToken);
+        userService.findUserFromToken(token); //ensures only authenticated users can fetch
 
         return DTOMapper.INSTANCE.convertEntityToUserGetDTO(foundUserId);
     }
