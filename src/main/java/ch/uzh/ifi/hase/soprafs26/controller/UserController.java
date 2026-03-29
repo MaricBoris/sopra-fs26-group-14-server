@@ -1,13 +1,10 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPersonalGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
 
@@ -94,6 +91,14 @@ public class UserController {
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(foundUserId);
 	}
 
+    @PutMapping("/users/{id}/password")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public void changePassword(@PathVariable Long id,
+                               @RequestBody UserPasswordPutDTO passwordDTO,
+                               @RequestHeader("Authorization") String bearerToken) {
+        userService.changePassword(id, passwordDTO, bearerToken);
+    }
     @PutMapping("/users/{userId}")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody

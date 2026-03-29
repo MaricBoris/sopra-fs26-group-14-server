@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPasswordPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,6 +133,27 @@ public class UserService {
 
         return user;
     }
+
+    public void changePassword(Long userId, UserPasswordPutDTO passwordDTO, String bearerToken) {
+
+        User user = findUserFromId(userId);
+        checkUsersMatch(user, findUserFromToken(extractToken(bearerToken)));
+
+        if (passwordDTO.getCurrentPassword() == null || passwordDTO.getCurrentPassword().isBlank() ||
+                passwordDTO.getNewPassword() == null || passwordDTO.getNewPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current and new password are required");
+        }
+
+        if (!user.getPassword().equals(passwordDTO.getCurrentPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password!");
+        }
+
+        user.setPassword(passwordDTO.getNewPassword());
+        userRepository.save(user);
+        userRepository.flush();
+    }
+
+
         /**
          * This is a helper method that will check the uniqueness criteria of the
          * username and the name
@@ -183,8 +205,8 @@ public class UserService {
 	}
 
 	public void checkUsersMatch(User user1, User user2) {
-		String baseErrorMessage = "Error: You are not Autorized. Go to login and clear local Storage";
-		if(!((user1.getId() == user2.getId()) && (user1.getToken() == user2.getToken()))) {
+		String baseErrorMessage = "Error: You are not Authorized. Go to login and clear local Storage";
+        if(!(user1.getId().equals(user2.getId()) && user1.getToken().equals(user2.getToken()))) {  //fixed to handle longer tokens
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, String.format(baseErrorMessage));
 		}
 	}
