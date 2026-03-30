@@ -1,5 +1,8 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserDeleteDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPasswordPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -116,16 +119,71 @@ public class UserService {
         userRepository.save(userToLogout);
         userRepository.flush();
     }
-	/**
-	 * This is a helper method that will check the uniqueness criteria of the
-	 * username and the name
-	 * defined in the User entity. The method will do nothing if the input is unique
-	 * and throw an error otherwise.
-	 *
-	 * @param userToBeCreated
-	 * @throws org.springframework.web.server.ResponseStatusException
-	 * @see User
-	 */
+
+    public User updateUserBio(Long userId, UserPutDTO userPutDTO, String bearerToken) {
+
+        String token = extractToken(bearerToken);
+        User tokenUser = findUserFromToken(token);
+        User user = findUserFromId(userId);
+
+        checkUsersMatch(user, tokenUser);
+        user.setBio(userPutDTO.getBio());
+
+        userRepository.save(user);
+        userRepository.flush();
+
+        return user;
+    }
+
+    public void changePassword(Long userId, UserPasswordPutDTO passwordDTO, String bearerToken) {
+
+        User user = findUserFromId(userId);
+        checkUsersMatch(user, findUserFromToken(extractToken(bearerToken)));
+
+        if (passwordDTO.getCurrentPassword() == null || passwordDTO.getCurrentPassword().isBlank() ||
+                passwordDTO.getNewPassword() == null || passwordDTO.getNewPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current and new password are required");
+        }
+
+        if (!user.getPassword().equals(passwordDTO.getCurrentPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password!");
+        }
+
+        user.setPassword(passwordDTO.getNewPassword());
+        userRepository.save(user);
+        userRepository.flush();
+    }
+
+    public void deleteUser(Long userId, UserDeleteDTO deleteDTO, String bearerToken) {
+
+        String token = extractToken(bearerToken);
+        User tokenUser = findUserFromToken(token);
+        User user = findUserFromId(userId);
+        checkUsersMatch(user, tokenUser);
+
+        if (deleteDTO == null || deleteDTO.getPassword() == null || deleteDTO.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Password is required to delete account");
+        }
+
+        if (!user.getPassword().equals(deleteDTO.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password");
+        }
+
+        userRepository.delete(user);
+        userRepository.flush();
+    }
+
+
+        /**
+         * This is a helper method that will check the uniqueness criteria of the
+         * username and the name
+         * defined in the User entity. The method will do nothing if the input is unique
+         * and throw an error otherwise.
+         *
+         * @param userToBeCreated
+         * @throws org.springframework.web.server.ResponseStatusException
+         * @see User
+         */
     private void checkIfUserExists(User userToBeCreated) {
         User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
 
@@ -158,7 +216,7 @@ public class UserService {
        
 		User userByToken = userRepository.findByToken(token);
 
-		String baseErrorMessage = "Error: You are not Autorized. Go to login and clear local Storage";
+		String baseErrorMessage = "Error: You are not Authorized. Go to login and clear local Storage";
 		if (userByToken == null) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, String.format(baseErrorMessage));
 		}
@@ -167,14 +225,10 @@ public class UserService {
 	}
 
 	public void checkUsersMatch(User user1, User user2) {
-		String baseErrorMessage = "Error: You are not Autorized. Go to login and clear local Storage";
-		if(!((user1.getId() == user2.getId()) && (user1.getToken() == user2.getToken()))) {
+		String baseErrorMessage = "Error: You are not Authorized. Go to login and clear local Storage";
+        if(!(user1.getId().equals(user2.getId()) && user1.getToken().equals(user2.getToken()))) {  //fixed to handle longer tokens
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, String.format(baseErrorMessage));
 		}
 	}
-
-
-
-
 
 }
