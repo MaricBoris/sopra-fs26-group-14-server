@@ -7,7 +7,6 @@ on:
 
   # run the workflow manually from the Actions tab
   workflow_dispatch:
-
 jobs:
   test:
     name: Test and Sonarqube
@@ -33,7 +32,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
           SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
-
 
   deploy:
     name: Deploying to Google Cloud
