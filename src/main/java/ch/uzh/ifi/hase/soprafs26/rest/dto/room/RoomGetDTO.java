@@ -8,6 +8,7 @@ public class RoomGetDTO {
     private Long id;
     private String name;
     private UserGetDTO lobbyLeader;
+    private Integer playerCount;
     private List<UserGetDTO> users;
 
     // private List<WriterGetDTO> writers;
@@ -35,6 +36,14 @@ public class RoomGetDTO {
 
     public void setLobbyLeader(UserGetDTO lobbyLeader) {
         this.lobbyLeader = lobbyLeader;
+    }
+
+    public Integer getPlayerCount() {
+        return (users != null) ? users.size() : 0;
+    }
+
+    public void setPlayerCount(Integer playerCount) {
+        this.playerCount = playerCount;
     }
 
     public List<UserGetDTO> getUsers() {

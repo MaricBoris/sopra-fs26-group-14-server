@@ -25,28 +25,48 @@ public class RoomService {
         this.userService = userService;
     }
 
-    public List<Room> getRooms() {
-        return this.roomRepository.findAll();
-    }
-
     public Room createRoom(Room newRoom, String bearerToken) {
-        // 1. Identify Creator & Handle 401 (Spec: "Error: reason... Go to login...")
-        // This will use the extractToken/findUserFromToken logic we built earlier
-        // Make sure those methods throw the EXACT string from your image.
         String token = userService.extractToken(bearerToken);
         User creator = userService.findUserFromToken(token);
 
-        // 2. Validate Room Name Uniqueness & Handle 409
         Room existingRoom = roomRepository.findByName(newRoom.getName());
         if (existingRoom != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Error: A room with that name already exists"); // Matches 409 Spec
+                    "Error: A room with that name already exists");
         }
 
-        // 3. Setup and Persist (Spec: Room created)
         newRoom.setLobbyLeader(creator);
         newRoom.getUsers().add(creator);
+        newRoom.setPlayerCount(1);
 
         return roomRepository.save(newRoom);
+    }
+
+    public List<Room> getRooms(String bearerToken) {
+        userService.findUserFromToken(userService.extractToken(bearerToken));
+        return this.roomRepository.findAll();
+    }
+
+    public Room joinRoom(Long roomId, String bearerToken) {
+        String token = userService.extractToken(bearerToken);
+        User user = userService.findUserFromToken(token);
+
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Error: Room with roomId was not found"));
+
+        boolean isFull = room.getPlayerCount() >= 3;
+
+        boolean alreadyIn = room.getUsers().contains(user);
+
+        if (isFull || alreadyIn) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Error: Wrong state and/or credential exchange");
+        }
+
+        room.getUsers().add(user);
+        room.setPlayerCount(room.getUsers().size());
+
+        return roomRepository.save(room);
     }
 }

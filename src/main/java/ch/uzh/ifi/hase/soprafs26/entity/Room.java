@@ -16,6 +16,9 @@ public class Room implements Serializable {
     @Column(nullable = false, unique = true)
     private String name;
 
+    @Column(nullable = false)
+    private Integer playerCount;
+
     @OneToMany(cascade = CascadeType.ALL)
     private List<User> users = new ArrayList<>();
 
@@ -34,6 +37,9 @@ public class Room implements Serializable {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public Integer getPlayerCount() { return playerCount; }
+    public void setPlayerCount(Integer playerCount) { this.playerCount = playerCount; }
 
     public List<User> getUsers() { return users; }
     public void setUsers(List<User> users) { this.users = users; }
