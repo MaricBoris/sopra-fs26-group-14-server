@@ -2,9 +2,9 @@ package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
 import org.junit.jupiter.api.Test;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPersonalGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPersonalGetDTO;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
