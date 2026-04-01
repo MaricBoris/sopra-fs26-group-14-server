@@ -1,7 +1,5 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto.room;
 
-import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserGetDTO;
-
 public class RoomPostDTO {
     private String name;
 
