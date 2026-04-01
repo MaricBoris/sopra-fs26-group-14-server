@@ -4,9 +4,8 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 
-import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
 
 import org.junit.jupiter.api.Test;

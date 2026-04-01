@@ -1,12 +1,15 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPersonalGetDTO;
+import ch.uzh.ifi.hase.soprafs26.entity.Room;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPersonalGetDTO;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPostDTO;
 
 /**
  * DTOMapper
@@ -43,4 +46,15 @@ public interface DTOMapper {
     @Mapping(source = "creationDate", target = "creationDate")
     @Mapping(source = "token", target = "token")
     UserPersonalGetDTO convertEntityToUserPersonalGetDTO(User user);
+
+    @Mapping(source = "name", target = "name")
+    Room convertRoomPostDTOtoEntity(RoomPostDTO roomPostDTO);
+
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "name", target = "name")
+    @Mapping(source = "lobbyLeader", target = "lobbyLeader")
+    @Mapping(source = "users", target = "users")
+    //@Mapping(source = "writers", target = "writers")
+    //@Mapping(source = "judges", target = "judges")
+    RoomGetDTO convertEntityToRoomGetDTO(Room room);
 }

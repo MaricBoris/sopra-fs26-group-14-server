@@ -1,8 +1,8 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserDeleteDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPasswordPutDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserDeleteDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPasswordPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPutDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -193,7 +193,7 @@ public class UserService {
         }
     }
 
-    private String extractToken(String bearerToken) {
+    public String extractToken(String bearerToken) {
         String token;
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             token = bearerToken.substring(7);
