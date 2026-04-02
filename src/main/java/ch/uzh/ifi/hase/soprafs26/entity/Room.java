@@ -22,16 +22,15 @@ public class Room implements Serializable {
     @OneToMany(cascade = CascadeType.ALL)
     private List<User> users = new ArrayList<>();
 
-    //@OneToMany(cascade = CascadeType.ALL)
-    //private List<Writer> writers = new ArrayList<>();
+    @OneToMany(cascade = CascadeType.ALL)
+    private List<Writer> writers = new ArrayList<>();
 
-    //@OneToMany(cascade = CascadeType.ALL)
-    //private List<Judge> judges = new ArrayList<>();
+    @OneToMany(cascade = CascadeType.ALL)
+    private List<Judge> judges = new ArrayList<>();
 
     @ManyToOne
     private User lobbyLeader;
 
-    // --- Getters and Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -44,11 +43,11 @@ public class Room implements Serializable {
     public List<User> getUsers() { return users; }
     public void setUsers(List<User> users) { this.users = users; }
 
-    //public List<Writer> getWriters() { return writers; }
-    //public void setWriters(List<Writer> writers) { this.writers = writers; }
+    public List<Writer> getWriters() { return writers; }
+    public void setWriters(List<Writer> writers) { this.writers = writers; }
 
-    //public List<Judge> getJudges() { return judges; }
-    //public void setJudges(List<Judge> judges) { this.judges = judges; }
+    public List<Judge> getJudges() { return judges; }
+    public void setJudges(List<Judge> judges) { this.judges = judges; }
 
     public User getLobbyLeader() { return lobbyLeader; }
     public void setLobbyLeader(User lobbyLeader) { this.lobbyLeader = lobbyLeader; }

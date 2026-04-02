@@ -1,6 +1,9 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto.room;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.JudgeGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.WriterGetDTO;
+
 import java.util.List;
 
 public class RoomGetDTO {
@@ -10,9 +13,8 @@ public class RoomGetDTO {
     private UserGetDTO lobbyLeader;
     private Integer playerCount;
     private List<UserGetDTO> users;
-
-    // private List<WriterGetDTO> writers;
-    // private List<JudgeGetDTO> judges;
+    private List<WriterGetDTO> writers;
+    private List<JudgeGetDTO> judges;
 
     public Long getId() {
         return id;
@@ -54,7 +56,7 @@ public class RoomGetDTO {
         this.users = users;
     }
 
-    /* public List<WriterGetDTO> getWriters() {
+    public List<WriterGetDTO> getWriters() {
         return writers;
     }
 
@@ -69,5 +71,4 @@ public class RoomGetDTO {
     public void setJudges(List<JudgeGetDTO> judges) {
         this.judges = judges;
     }
-    */
 }
