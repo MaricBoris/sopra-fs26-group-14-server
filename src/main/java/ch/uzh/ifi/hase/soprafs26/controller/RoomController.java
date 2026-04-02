@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 import ch.uzh.ifi.hase.soprafs26.entity.Room;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomRoleDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.RoomService;
 import org.springframework.http.HttpStatus;
@@ -34,7 +35,7 @@ public class RoomController {
     @GetMapping("/rooms")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public List<RoomGetDTO> getAllRooms(@RequestHeader("Authorization") String bearerToken) {
+    public List<RoomGetDTO> getAllRooms(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
         List<Room> rooms = roomService.getRooms(bearerToken);
         List<RoomGetDTO> roomGetDTOs = new ArrayList<>();
 
@@ -47,8 +48,18 @@ public class RoomController {
     @PutMapping("/rooms/{roomId}/join")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public RoomGetDTO joinRoom(@PathVariable Long roomId, @RequestHeader("Authorization") String bearerToken) {
+    public RoomGetDTO joinRoom(@PathVariable Long roomId, @RequestHeader(value = "Authorization", required = false) String bearerToken) {
         Room joinedRoom = roomService.joinRoom(roomId, bearerToken);
         return DTOMapper.INSTANCE.convertEntityToRoomGetDTO(joinedRoom);
+    }
+
+    @PutMapping("/rooms/{roomId}/roles")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public RoomGetDTO updateRole(@PathVariable Long roomId,
+                                 @RequestBody RoomRoleDTO roomRoleDTO,
+                                 @RequestHeader(value = "Authorization", required = false) String bearerToken) {
+        Room room = roomService.swapRole(roomId, roomRoleDTO.getRole(), bearerToken);
+        return DTOMapper.INSTANCE.convertEntityToRoomGetDTO(room);
     }
 }
