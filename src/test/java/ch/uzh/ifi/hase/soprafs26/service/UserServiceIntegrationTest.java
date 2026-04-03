@@ -1,6 +1,8 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,8 +26,17 @@ public class UserServiceIntegrationTest {
     @Autowired
     private UserService userService;
 
+    @Qualifier("roomRepository")
+    @Autowired
+    private RoomRepository roomRepository;
+
+    @Autowired
+    private GameRepository gameRepository;
+
     @BeforeEach
     public void setup() {
+        gameRepository.deleteAll();
+        roomRepository.deleteAll();
         userRepository.deleteAll();
     }
 
