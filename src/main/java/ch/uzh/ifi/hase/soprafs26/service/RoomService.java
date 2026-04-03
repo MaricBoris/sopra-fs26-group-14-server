@@ -1,9 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
-import ch.uzh.ifi.hase.soprafs26.entity.Judge;
-import ch.uzh.ifi.hase.soprafs26.entity.Room;
-import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.entity.Writer;
+import ch.uzh.ifi.hase.soprafs26.entity.*;
+import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,18 +10,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 @Service
 @Transactional
 public class RoomService {
 
     private final RoomRepository roomRepository;
+    private final GameRepository gameRepository;
     private final UserService userService;
 
     @Autowired
-    public RoomService(@Qualifier("roomRepository") RoomRepository roomRepository, UserService userService) {
+    public RoomService(@Qualifier("roomRepository") RoomRepository roomRepository, GameRepository gameRepository, UserService userService) {
         this.roomRepository = roomRepository;
+        this.gameRepository = gameRepository;
         this.userService = userService;
     }
 
@@ -162,5 +165,48 @@ public class RoomService {
         } else if (!room.getJudges().isEmpty()) {
             room.setLobbyLeader(room.getJudges().get(0).getUser());
         }
+    }
+
+    public Game startGame(Long roomId, String bearerToken) {
+        String token = userService.extractToken(bearerToken);
+        User requester = userService.findUserFromToken(token);
+
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Error: Room with roomId was not found"));
+
+        if (!room.getLobbyLeader().getId().equals(requester.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Error: The Lobby leader has to start the game");
+        }
+
+        if (room.getWriters().size() != 2 || room.getJudges().size() != 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Error: Wrong state and/or credential exchange");
+        }
+
+        Game game = new Game();
+        game.setWriters(new ArrayList<>(room.getWriters()));
+        game.setJudge(room.getJudges().get(0));
+        game.setTimer(90L);
+
+        List<String> genrePool = new ArrayList<>(List.of("Horror", "Comedy", "Sci-Fi", "Fantasy"));
+        Collections.shuffle(genrePool);
+        game.getWriters().get(0).setGenre(genrePool.get(0));
+        game.getWriters().get(1).setGenre(genrePool.get(1));
+
+        boolean firstWriterStarts = new Random().nextBoolean();
+        game.getWriters().get(0).setTurn(firstWriterStarts);
+        game.getWriters().get(1).setTurn(!firstWriterStarts);
+
+        game = gameRepository.save(game);
+
+        room.getWriters().clear();
+        room.getJudges().clear();
+        room.getUsers().clear();
+        roomRepository.delete(room);
+        roomRepository.flush();
+
+        return game;
     }
 }

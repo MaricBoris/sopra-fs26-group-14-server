@@ -1,6 +1,8 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
+import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.entity.Room;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomRoleDTO;
@@ -77,5 +79,15 @@ public class RoomController {
     public void leaveRoom(@PathVariable Long roomId,
                           @RequestHeader(value = "Authorization", required = false) String bearerToken) {
         roomService.leaveRoom(roomId, bearerToken);
+    }
+
+    @PostMapping("/rooms/{roomId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseBody
+    public GameGetDTO startGame(@PathVariable Long roomId,
+                                @RequestHeader(value = "Authorization", required = false) String bearerToken) {
+        Game startedGame = roomService.startGame(roomId, bearerToken);
+
+        return DTOMapper.INSTANCE.convertEntityToGameGetDTO(startedGame);
     }
 }
