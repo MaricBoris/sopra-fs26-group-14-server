@@ -108,4 +108,59 @@ public class RoomService {
 
         return roomRepository.save(room);
     }
+
+    public Room getRoomById(Long roomId, String bearerToken) {
+        userService.findUserFromToken(userService.extractToken(bearerToken));
+
+        return roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Error: Room with roomId was not found"));
+    }
+
+    public void leaveRoom(Long roomId, String bearerToken) {
+        String token = userService.extractToken(bearerToken);
+        User user = userService.findUserFromToken(token);
+
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Error: Room with roomId was not found"));
+
+        boolean inUsers = room.getUsers().stream().anyMatch(u -> u.getId().equals(user.getId()));
+        boolean inWriters = room.getWriters().stream().anyMatch(w -> w.getUser().getId().equals(user.getId()));
+        boolean inJudges = room.getJudges().stream().anyMatch(j -> j.getUser().getId().equals(user.getId()));
+
+        if (!inUsers && !inWriters && !inJudges) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Error: Wrong state and/or credential exchange");
+        }
+
+        room.getUsers().removeIf(u -> u.getId().equals(user.getId()));
+        room.getWriters().removeIf(w -> w.getUser().getId().equals(user.getId()));
+        room.getJudges().removeIf(j -> j.getUser().getId().equals(user.getId()));
+
+        room.setPlayerCount(room.getUsers().size() + room.getWriters().size() + room.getJudges().size());
+
+        if (room.getPlayerCount() == 0) {
+            roomRepository.delete(room);
+            roomRepository.flush();
+            return;
+        }
+
+        if (room.getLobbyLeader().getId().equals(user.getId())) {
+            promoteToLeader(room);
+        }
+
+        roomRepository.save(room);
+        roomRepository.flush();
+    }
+
+    private void promoteToLeader(Room room) {
+        if (!room.getUsers().isEmpty()) {
+            room.setLobbyLeader(room.getUsers().get(0));
+        } else if (!room.getWriters().isEmpty()) {
+            room.setLobbyLeader(room.getWriters().get(0).getUser());
+        } else if (!room.getJudges().isEmpty()) {
+            room.setLobbyLeader(room.getJudges().get(0).getUser());
+        }
+    }
 }

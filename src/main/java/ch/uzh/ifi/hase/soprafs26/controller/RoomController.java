@@ -62,4 +62,20 @@ public class RoomController {
         Room room = roomService.swapRole(roomId, roomRoleDTO.getRole(), bearerToken);
         return DTOMapper.INSTANCE.convertEntityToRoomGetDTO(room);
     }
+
+    @GetMapping("/rooms/{roomId}")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public RoomGetDTO getRoom(@PathVariable Long roomId,
+                              @RequestHeader(value = "Authorization", required = false) String bearerToken) {
+        Room room = roomService.getRoomById(roomId, bearerToken);
+        return DTOMapper.INSTANCE.convertEntityToRoomGetDTO(room);
+    }
+
+    @PutMapping("/rooms/{roomId}/leave")
+    @ResponseStatus(HttpStatus.NO_CONTENT) // Matches "204" in Spec
+    public void leaveRoom(@PathVariable Long roomId,
+                          @RequestHeader(value = "Authorization", required = false) String bearerToken) {
+        roomService.leaveRoom(roomId, bearerToken);
+    }
 }
