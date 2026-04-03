@@ -1,12 +1,14 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
+import ch.uzh.ifi.hase.soprafs26.entity.*;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.Test;
-import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPostDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPersonalGetDTO;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * DTOMapperTest
@@ -62,5 +64,116 @@ public class DTOMapperTest {
         assertEquals(user.getUsername(), personalDTO.getUsername());
         assertEquals(user.getToken(), personalDTO.getToken());
         assertEquals(user.getBio(), personalDTO.getBio());
+    }
+
+    @Test
+    public void testCreateRoom_fromRoomPostDTO_toRoom_success() {
+        // create RoomPostDTO
+        RoomPostDTO roomPostDTO = new RoomPostDTO();
+        roomPostDTO.setName("TestRoom");
+
+        // MAP -> Create Room
+        Room room = DTOMapper.INSTANCE.convertRoomPostDTOtoEntity(roomPostDTO);
+
+        // check content
+        assertEquals(roomPostDTO.getName(), room.getName());
+    }
+
+    @Test
+    public void testGetWriter_fromWriter_toWriterGetDTO_success() {
+        // create User for the Writer
+        User user = new User();
+        user.setId(10L);
+        user.setUsername("writerUser");
+
+        // create Writer (Composition)
+        Writer writer = new Writer(user);
+        writer.setGenre("Sci-Fi");
+        writer.setTurn(true);
+        writer.setText("Once upon a time...");
+
+        // MAP -> Create WriterGetDTO
+        WriterGetDTO writerGetDTO = DTOMapper.INSTANCE.convertEntityToWriterGetDTO(writer);
+
+        // check flattened content (User fields)
+        assertEquals(user.getId(), writerGetDTO.getId());
+        assertEquals(user.getUsername(), writerGetDTO.getUsername());
+        // check writer specific fields
+        assertEquals(writer.getGenre(), writerGetDTO.getGenre());
+        assertEquals(writer.getTurn(), writerGetDTO.getTurn());
+        assertEquals(writer.getText(), writerGetDTO.getText());
+    }
+
+    @Test
+    public void testGetJudge_fromJudge_toJudgeGetDTO_success() {
+        // create User for the Judge
+        User user = new User();
+        user.setId(20L);
+        user.setUsername("judgeUser");
+
+        // create Judge (Composition)
+        Judge judge = new Judge(user);
+        judge.setInsertions(5L);
+
+        // MAP -> Create JudgeGetDTO
+        JudgeGetDTO judgeGetDTO = DTOMapper.INSTANCE.convertEntityToJudgeGetDTO(judge);
+
+        // check flattened content
+        assertEquals(user.getId(), judgeGetDTO.getId());
+        assertEquals(user.getUsername(), judgeGetDTO.getUsername());
+        assertEquals(judge.getInsertions(), judgeGetDTO.getInsertions());
+    }
+
+    @Test
+    public void testGetRoom_fromRoom_toRoomGetDTO_success() {
+        // 1. Create a Leader with an ID
+        User leader = new User();
+        leader.setId(1L);
+        leader.setUsername("leaderUser");
+
+        // 2. Create the Room
+        Room room = new Room();
+        room.setId(100L);
+        room.setName("TestRoom");
+        room.setPlayerCount(1);
+        room.setLobbyLeader(leader);
+
+        // Optional: Add the leader to the users list as well to match real logic
+        room.getUsers().add(leader);
+
+        // 3. MAP
+        RoomGetDTO roomGetDTO = DTOMapper.INSTANCE.convertEntityToRoomGetDTO(room);
+
+        // 4. CHECK
+        assertEquals(room.getId(), roomGetDTO.getId());
+        assertEquals(room.getName(), roomGetDTO.getName());
+        assertEquals(1, roomGetDTO.getPlayerCount());
+
+        assertNotNull(roomGetDTO.getLobbyLeader());
+        assertEquals(leader.getId(), roomGetDTO.getLobbyLeader().getId());
+        assertEquals(leader.getUsername(), roomGetDTO.getLobbyLeader().getUsername());
+    }
+
+    @Test
+    public void testGetGame_fromGame_toGameGetDTO_success() {
+        // create Game
+        Game game = new Game();
+        game.setId(500L);
+        game.setTimer(90L);
+
+        // Add a writer to test nested list mapping
+        User user = new User();
+        user.setUsername("nestedWriter");
+        Writer writer = new Writer(user);
+        game.getWriters().add(writer);
+
+        // MAP -> Create GameGetDTO
+        GameGetDTO gameGetDTO = DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+
+        // check content
+        assertEquals(game.getId(), gameGetDTO.getGameId());
+        assertEquals(game.getTimer(), gameGetDTO.getTimer());
+        assertEquals(1, gameGetDTO.getWriters().size());
+        assertEquals(user.getUsername(), gameGetDTO.getWriters().get(0).getUsername());
     }
 }
