@@ -22,10 +22,10 @@ public class Room implements Serializable {
     @OneToMany(cascade = CascadeType.ALL)
     private List<User> users = new ArrayList<>();
 
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Writer> writers = new ArrayList<>();
 
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Judge> judges = new ArrayList<>();
 
     @ManyToOne
