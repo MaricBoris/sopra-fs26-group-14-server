@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import java.security.SecureRandom;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,6 +23,7 @@ public class RoomService {
     private final RoomRepository roomRepository;
     private final GameRepository gameRepository;
     private final UserService userService;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     @Autowired
     public RoomService(@Qualifier("roomRepository") RoomRepository roomRepository, GameRepository gameRepository, UserService userService) {
@@ -195,7 +197,7 @@ public class RoomService {
         game.getWriters().get(0).setGenre(genrePool.get(0));
         game.getWriters().get(1).setGenre(genrePool.get(1));
 
-        boolean firstWriterStarts = new Random().nextBoolean();
+        boolean firstWriterStarts = secureRandom.nextBoolean();
         game.getWriters().get(0).setTurn(firstWriterStarts);
         game.getWriters().get(1).setTurn(!firstWriterStarts);
 
