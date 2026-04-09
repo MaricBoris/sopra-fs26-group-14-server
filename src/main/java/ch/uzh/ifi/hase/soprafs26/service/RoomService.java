@@ -95,6 +95,9 @@ public class RoomService {
         room.getWriters().removeIf(w -> w.getUser().getId().equals(user.getId()));
         room.getJudges().removeIf(j -> j.getUser().getId().equals(user.getId()));
 
+        // 📝 flush deletes before insert to avoid unique constraint violation on user_id
+        roomRepository.saveAndFlush(room);
+
         if ("WRITER".equalsIgnoreCase(targetRole)) {
             if (room.getWriters().size() >= 2) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Wrong state and/or credential exchange");
@@ -189,7 +192,7 @@ public class RoomService {
 
         Game game = new Game();
         game.setWriters(new ArrayList<>(room.getWriters()));
-        game.setJudge(room.getJudges().get(0));
+        game.setJudges(new ArrayList<>(room.getJudges()));
         game.setTimer(90L);
 
         List<String> genrePool = new ArrayList<>(List.of("Horror", "Comedy", "Sci-Fi", "Fantasy"));
