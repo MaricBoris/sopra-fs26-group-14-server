@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GamePostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
@@ -74,4 +75,6 @@ public interface DTOMapper {
     @Mapping(source = "timer", target = "timer")
     //@Mapping(source = "story", target = "story")
     GameGetDTO convertEntityToGameGetDTO(Game game);
+
+    
 }
