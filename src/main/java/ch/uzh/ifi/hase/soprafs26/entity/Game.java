@@ -18,8 +18,8 @@ public class Game implements Serializable {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Writer> writers = new ArrayList<>();
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    private Judge judge;
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Judge> judges = new ArrayList<>();
 
     //@Column(columnDefinition = "TEXT")
     //private Story story;
@@ -33,8 +33,8 @@ public class Game implements Serializable {
     public List<Writer> getWriters() { return writers; }
     public void setWriters(List<Writer> writers) { this.writers = writers; }
 
-    public Judge getJudge() { return judge; }
-    public void setJudge(Judge judge) { this.judge = judge; }
+    public List<Judge> getJudges() { return judges; }
+    public void setJudges(List<Judge> judges) { this.judges = judges; }
 
     //public String getStory() { return story; }
     //public void setStory(String story) { this.story = story; }

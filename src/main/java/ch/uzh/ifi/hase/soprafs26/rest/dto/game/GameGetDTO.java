@@ -9,7 +9,7 @@ public class GameGetDTO {
     private Long gameId;
     private Long timer;
     private List<WriterGetDTO> writers;
-    private JudgeGetDTO judge;
+    private List<JudgeGetDTO> judges;
     //private Story story;
 
     public Long getGameId() {
@@ -36,12 +36,12 @@ public class GameGetDTO {
         this.writers = writers;
     }
 
-    public JudgeGetDTO getJudge() {
-        return judge;
+    public List<JudgeGetDTO> getJudges() {
+        return judges;
     }
 
-    public void setJudge(JudgeGetDTO judge) {
-        this.judge = judge;
+    public void setJudges(List<JudgeGetDTO> judges) {
+        this.judges = judges;
     }
 
     /**public String getStory() {
