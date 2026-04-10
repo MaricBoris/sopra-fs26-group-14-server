@@ -3,20 +3,16 @@ package ch.uzh.ifi.hase.soprafs26.service;
 import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
-import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import java.security.SecureRandom;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -24,18 +20,13 @@ import java.util.HashMap;
 @Transactional
 public class GameService {
 
-    private final RoomRepository roomRepository;
     private final GameRepository gameRepository;
     private final UserRepository userRepository;
-    private final UserService userService;
-    private final SecureRandom secureRandom = new SecureRandom();
 
     @Autowired
-    public GameService(@Qualifier("roomRepository") RoomRepository roomRepository, @Qualifier("gameRepository") GameRepository gameRepository, UserRepository userRepository, UserService userService) {
-        this.roomRepository = roomRepository;
+    public GameService( @Qualifier("gameRepository") GameRepository gameRepository, UserRepository userRepository) {
         this.gameRepository = gameRepository;
         this.userRepository = userRepository;
-        this.userService = userService;
     }
 
 
@@ -81,35 +72,33 @@ public class GameService {
         return winner;
     }
 
-    public Game getGame(Long GameId){
+    public Game getGame(Long gameId){
         String baseErrorMessage = "Error: The provided id: %s is invalid and doesn't match any game.";
-		Game gameById = gameRepository.findById(GameId).orElseThrow(() ->  
-		new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(baseErrorMessage, GameId))); //NOT_FOUND 404
+		Game gameById = gameRepository.findById(gameId).orElseThrow(() ->  
+		new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(baseErrorMessage, gameId))); //NOT_FOUND 404
 
 		return gameById; 
     }
 
     public Judge getJudgeFromUser(User userJudge, Game currentGame){
-                String baseErrorMessage = "Error: You are not allowed to vote for this game.";
-        Boolean found = false;
+        String baseErrorMessage = "Error: You are not allowed to vote for this game.";
         for (Judge judge : currentGame.getJudges()){
-            if(userJudge.getId() == judge.getUser().getId()){
+            if(userJudge.getId().equals(judge.getUser().getId())){
                 return judge;
             }
         } 
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, String.format(baseErrorMessage));
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, baseErrorMessage);
     }
 
 
     public Writer getWriterFromUser(User userWriter, Game currentGame){
-        Boolean found = false;
         String baseErrorMessage = "Error: You are not allowed to vote for a non writer.";
         for (Writer writer : currentGame.getWriters()){
-            if(userWriter.getId() == writer.getUser().getId()){
+            if(userWriter.getId().equals(writer.getUser().getId())){
                 return writer;
             }
         }  
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage));
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, baseErrorMessage);
     }
 
 
@@ -119,7 +108,7 @@ public class GameService {
 
 		String baseErrorMessage = "Error: You are not Authorized.";
 		if (userByToken == null) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, String.format(baseErrorMessage));
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, baseErrorMessage);
 		}
 
 		return userByToken;
@@ -127,8 +116,8 @@ public class GameService {
 
     public void checkGameIsOver(Game currentGame){
         String baseErrorMessage = "Error: The game is not over.";
-        if(currentGame.getTimer() != 0){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage)); 
+        if(!currentGame.getTimer().equals(0L)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, baseErrorMessage); 
         }
     }
 
