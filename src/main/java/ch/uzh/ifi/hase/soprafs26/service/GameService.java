@@ -110,9 +110,10 @@ public class GameService {
         String currentStory = playedGame.getStory();
         if (currentStory == null || currentStory.isBlank()) {
             playedGame.setStory(inputText);
-        } else {
+        } else if (!inputText.isBlank()){
             playedGame.setStory(currentStory+" "+inputText);
         }
+
         playedGame.nextRound();
         gameRepository.save(playedGame);
         return playedGame;
