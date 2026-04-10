@@ -60,12 +60,6 @@ public class GameController {
         }
 
         Writer winner = gameService.determineWinner(currentGame);
-
-        if (winner == null) {
-            gameService.clearVotes(currentGame); //TO BE MODIFIED HERE HANDLE NO WINNERS
-            return DTOMapper.INSTANCE.convertEntityToGameGetDTO(currentGame);
-        }
-
         
         Story currentStory = gameService.updateStory(winner, currentGame);
 

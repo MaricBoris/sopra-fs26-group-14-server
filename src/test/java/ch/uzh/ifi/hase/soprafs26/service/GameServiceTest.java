@@ -328,7 +328,7 @@ public class GameServiceTest {
         Judge judge = new Judge(judgeUser);
         judge.setId(1L);
 
-        Story existingStory = new Story(null, null, "Once upon a time...", null, null, new ArrayList<>());
+        Story existingStory = new Story(null, null, "Once upon a time...", false, null, null, new ArrayList<>());
 
         Game game = new Game();
         game.setId(1L);

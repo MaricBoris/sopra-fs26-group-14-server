@@ -25,7 +25,10 @@ public class Story implements Serializable {
     @Column(columnDefinition = "TEXT")
     private String storyText;
 
+    private Boolean hasWinner;
+
     private String winGenre;
+
     private String loseGenre;
 
     @ManyToMany
@@ -36,23 +39,27 @@ public class Story implements Serializable {
 
     public Story() {
         this.storyText = "";
+        this.hasWinner = false;
         this.creationDate = new Date();
     }
 
-    public Story(User winner, User loser, String storyText, String winGenre, String loseGenre, List<User> judges) {
+    public Story(User winner, User loser, String storyText, Boolean hasWinner, String winGenre, String loseGenre, List<User> judges) {
         this.winner = winner;
         this.loser = loser;
         this.storyText = storyText;
+        this.hasWinner = hasWinner;
         this.winGenre = winGenre;
         this.loseGenre = loseGenre;
         this.judges = judges;
         this.creationDate = new Date();
     }
 
+
     public Long getId() { return id; }
     public User getWinner() { return winner; }
     public User getLoser() { return loser; }
     public String getStoryText() { return storyText; }
+    public Boolean getHasWinner() { return hasWinner; }
     public String getWinGenre() { return winGenre; }
     public String getLoseGenre() { return loseGenre; }
     public List<User> getJudges() { return judges; }

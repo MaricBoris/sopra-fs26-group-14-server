@@ -133,16 +133,25 @@ public class GameService {
     }
 
     public Story updateStory(Writer winner, Game currentGame){
-        Writer loser = currentGame.getWriters().get(0).getId().equals(winner.getId())
-        ? currentGame.getWriters().get(1)
-        : currentGame.getWriters().get(0);
+        Boolean hasWinner = false;
+        Writer loser = null;
+        if (winner == null){
+            winner = currentGame.getWriters().get(0);
+            loser = currentGame.getWriters().get(1);
+        }
+        else{
+            hasWinner = true;
+            loser = currentGame.getWriters().get(0).getId().equals(winner.getId())
+            ? currentGame.getWriters().get(1)
+            : currentGame.getWriters().get(0);
+        }
 
         List<User> judgeUsers = new ArrayList<>();
         for (Judge judge : currentGame.getJudges()) {
             judgeUsers.add(judge.getUser());
         }
 
-        Story newStory = new Story (winner.getUser(), loser.getUser(), currentGame.getStory().getStoryText(), winner.getGenre(), loser.getGenre(), judgeUsers);
+        Story newStory = new Story (winner.getUser(), loser.getUser(), currentGame.getStory().getStoryText(), hasWinner, winner.getGenre(), loser.getGenre(), judgeUsers);
 
         currentGame.setStory(newStory);
 

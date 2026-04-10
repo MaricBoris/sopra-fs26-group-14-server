@@ -209,7 +209,8 @@ public class GameServiceIntegrationTest {
 
         Judge judge = new Judge(user1);
 
-        Story initialStory = new Story(null, null, "Once upon a time...", null, null, new ArrayList<>());
+        Story initialStory = new Story(null, null, "Once upon a time...", false, null, null, new ArrayList<>());
+
 
         Game game = new Game();
         game.setWriters(List.of(winner, loser));
@@ -240,7 +241,7 @@ public class GameServiceIntegrationTest {
 
         Judge judge = new Judge(user1);
 
-        Story story = new Story(null, null, "A great tale", null, null, new ArrayList<>());
+        Story story = new Story(null, null, "A great tale", false, null, null, new ArrayList<>());
 
         Game game = new Game();
         game.setWriters(List.of(writer));
