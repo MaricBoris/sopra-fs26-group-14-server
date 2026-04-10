@@ -189,7 +189,7 @@ public class RoomService {
 
         Game game = new Game();
         game.setWriters(new ArrayList<>(room.getWriters()));
-        game.setJudge(room.getJudges().get(0));
+        game.setJudges(new ArrayList<>(room.getJudges()));
         game.setTimer(90L);
 
         List<String> genrePool = new ArrayList<>(List.of("Horror", "Comedy", "Sci-Fi", "Fantasy"));
@@ -200,6 +200,14 @@ public class RoomService {
         boolean firstWriterStarts = secureRandom.nextBoolean();
         game.getWriters().get(0).setTurn(firstWriterStarts);
         game.getWriters().get(1).setTurn(!firstWriterStarts);
+
+        long now = System.currentTimeMillis();
+        game.getWriters().get(0).setLastSeenAt(now);
+        game.getWriters().get(1).setLastSeenAt(now);
+
+        for(Judge j: game.getJudges()){
+            j.setLastSeenAt(now);
+        }
 
         game = gameRepository.save(game);
 

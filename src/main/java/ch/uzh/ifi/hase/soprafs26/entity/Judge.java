@@ -18,6 +18,9 @@ public class Judge implements Serializable {
     @Column(nullable = false)
     private Long insertions = 0L;
 
+    @Column(nullable = false)
+    private Long lastSeenAt = System.currentTimeMillis();
+
     public Judge() {}
     public Judge(User user) { this.user = user; }
 
@@ -29,4 +32,7 @@ public class Judge implements Serializable {
 
     public Long getInsertions() { return insertions; }
     public void setInsertions(Long insertions) { this.insertions = insertions; }
+
+    public Long getLastSeenAt() { return lastSeenAt; }
+    public void setLastSeenAt(Long lastSeenAt) { this.lastSeenAt = lastSeenAt; }
 }

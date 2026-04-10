@@ -5,12 +5,12 @@ import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.List;
 
 
 
@@ -34,19 +34,50 @@ public class GameService {
         Game playedGame=getandCheckGame(id, token);
         User requestingUser=getandCheckUser(token);
         boolean partOfGame=false;
+        long now = System.currentTimeMillis();
+        long timeoutMillis = 15000L;
         for (Writer writer : playedGame.getWriters()) {
             if(writer.getUser().getId().equals(requestingUser.getId())){
                 partOfGame=true;
+                writer.setLastSeenAt(now);
             }
         }
         for (Judge judge : playedGame.getJudges()) {
             if(judge.getUser().getId().equals(requestingUser.getId())){
                 partOfGame=true;
+                judge.setLastSeenAt(now);
             }
         }
         if (!partOfGame){
            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User not part of game"); //Check 403 
         }
+       
+        
+        for (Writer writer : playedGame.getWriters()) {
+            if (now - writer.getLastSeenAt() > timeoutMillis) {
+                gameRepository.delete(playedGame);
+                gameRepository.flush();
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game ended because a writer disconnected");
+                
+            }
+        }  
+        List<Judge> disconnectedJudges = new ArrayList<>();
+        for (Judge judge : playedGame.getJudges()) {
+            if (now - judge.getLastSeenAt() > timeoutMillis) {
+               disconnectedJudges.add(judge);
+            }
+        }
+        if (!disconnectedJudges.isEmpty()) {
+            playedGame.getJudges().removeAll(disconnectedJudges);
+            if ( playedGame.getJudges().size()<1 ){
+            gameRepository.delete(playedGame);
+            gameRepository.flush();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game ended because judge disconnected");
+            }
+            else{
+                gameRepository.save(playedGame);
+            }
+        }   
 
         if (playedGame.getWriters().size()!=2 || playedGame.getJudges().size()!=1 ){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"); //Check 400 
@@ -58,7 +89,7 @@ public class GameService {
     public Game insertWriterInput(Long id, Integer player , String inputText , String bearerToken) {
 
         //currently player turned out to be useless, but maybe it's useful later, so decided to keep it
-        
+
         String token = userService.extractToken(bearerToken);
         Game playedGame=getandCheckGame(id, token);
         User requestingUser=getandCheckUser(token);
@@ -126,6 +157,7 @@ public class GameService {
 
         if (playedGame.getWriters().size()<2 || playedGame.getJudges().size()<1 ){
             gameRepository.delete(playedGame);
+            gameRepository.flush();
         }
         else{
             gameRepository.save(playedGame);
