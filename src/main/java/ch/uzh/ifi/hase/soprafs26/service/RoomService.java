@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.security.SecureRandom;
+
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,7 +28,7 @@ public class RoomService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Autowired
-    public RoomService(@Qualifier("roomRepository") RoomRepository roomRepository, GameRepository gameRepository, UserService userService) {
+    public RoomService(@Qualifier("roomRepository") RoomRepository roomRepository, @Qualifier("gameRepository") GameRepository gameRepository, UserService userService) {
         this.roomRepository = roomRepository;
         this.gameRepository = gameRepository;
         this.userService = userService;
@@ -208,6 +210,8 @@ public class RoomService {
         for(Judge j: game.getJudges()){
             j.setLastSeenAt(now);
         }
+        Story story = new Story();
+        game.setStory(story);
 
         game = gameRepository.save(game);
 
