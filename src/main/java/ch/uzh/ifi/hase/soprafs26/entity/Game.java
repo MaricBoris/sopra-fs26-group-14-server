@@ -22,9 +22,9 @@ public class Game implements Serializable {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Judge> judges = new ArrayList<>();
 
-
     @OneToOne(cascade = CascadeType.ALL)
     private Story story;
+
 
 
     public Long getId() { return id; }
@@ -39,8 +39,6 @@ public class Game implements Serializable {
     public List<Judge> getJudges() { return judges; }
     public void setJudges(List<Judge> judges) { this.judges = judges; }
 
-
-
     public void nextRound() {
         setTimer(60L);
         for (Writer writer: writers){
@@ -52,5 +50,6 @@ public class Game implements Serializable {
 
     public Story getStory() { return story; }
     public void setStory(Story story) { this.story = story; }
+
 
 }

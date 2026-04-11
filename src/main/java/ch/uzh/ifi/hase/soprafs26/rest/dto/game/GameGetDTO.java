@@ -12,8 +12,8 @@ public class GameGetDTO {
     private List<WriterGetDTO> writers;
     private List<JudgeGetDTO> judges;
 
-    private Story story;
 
+    private Story story;
 
     public Long getGameId() {
         return gameId;
@@ -39,7 +39,6 @@ public class GameGetDTO {
         this.writers = writers;
     }
 
-
     public List<JudgeGetDTO> getJudges() {
 
         return judges;
@@ -47,9 +46,8 @@ public class GameGetDTO {
 
     public void setJudges(List<JudgeGetDTO> judges) {
         this.judges = judges;
-    }
-   
 
+    }
     public Story getStory() {
     return story;
     }
