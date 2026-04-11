@@ -2,6 +2,9 @@ package ch.uzh.ifi.hase.soprafs26.entity;
 
 import jakarta.persistence.*;
 
+import java.util.List;
+import java.util.ArrayList;
+import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -17,6 +20,7 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "users")
+@Inheritance(strategy = InheritanceType.JOINED)
 public class User implements Serializable {
 
 	private static final long serialVersionUID = 1L;
@@ -36,12 +40,12 @@ public class User implements Serializable {
 
     @Column(nullable = false)
     private String password;
-
-//    @Column(nullable = false)
-//    private History history;
-
+	
     @Column(nullable = false, updatable = false)
     private Date creationDate = new Date();
+
+	@ManyToMany(cascade = CascadeType.ALL)
+	private List<Story> history = new ArrayList<>();
 
 	public Long getId() {
 		return id;
@@ -79,11 +83,6 @@ public class User implements Serializable {
 
     public void setCreationDate(Date creationDate) { this.creationDate = creationDate; }
 
-	/*public History getHistory() {
-		return history;
-	}
-
-	public void setHystory(Hystory hystory) {
-		this.history = history;
-	}*/
+	public void addStory(Story story) { this.history.add(story); }
+	public List<Story> getHistory() { return history; }
 }
