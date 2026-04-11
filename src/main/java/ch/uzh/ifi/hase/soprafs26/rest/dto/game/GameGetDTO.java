@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto.game;
 
+import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.JudgeGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.WriterGetDTO;
 import java.util.List;
@@ -10,7 +11,9 @@ public class GameGetDTO {
     private Long timer;
     private List<WriterGetDTO> writers;
     private List<JudgeGetDTO> judges;
-    //private Story story;
+
+    private Story story;
+
 
     public Long getGameId() {
         return gameId;
@@ -35,7 +38,10 @@ public class GameGetDTO {
     public void setWriters(List<WriterGetDTO> writers) {
         this.writers = writers;
     }
-     public List<JudgeGetDTO> getJudges() {
+
+
+    public List<JudgeGetDTO> getJudges() {
+
         return judges;
     }
 
@@ -44,11 +50,11 @@ public class GameGetDTO {
     }
    
 
-    /**public String getStory() {
-        return story;
+    public Story getStory() {
+    return story;
     }
 
-    public void setStory(String story) {
+    public void setStory(Story story) {
         this.story = story;
-    }**/
+    }
 }

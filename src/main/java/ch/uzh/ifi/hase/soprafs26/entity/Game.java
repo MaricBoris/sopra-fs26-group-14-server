@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.entity;
 
 import jakarta.persistence.*;
+import ch.uzh.ifi.hase.soprafs26.entity.Story;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -20,9 +21,11 @@ public class Game implements Serializable {
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Judge> judges = new ArrayList<>();
-   
-    //@Column(columnDefinition = "TEXT")
-    //private Story story;
+
+
+    @OneToOne(cascade = CascadeType.ALL)
+    private Story story;
+
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -36,8 +39,7 @@ public class Game implements Serializable {
     public List<Judge> getJudges() { return judges; }
     public void setJudges(List<Judge> judges) { this.judges = judges; }
 
-    //public String getStory() { return story; }
-    //public void setStory(String story) { this.story = story; }
+
 
     public void nextRound() {
         setTimer(60L);
@@ -47,4 +49,8 @@ public class Game implements Serializable {
     }
     
     
+
+    public Story getStory() { return story; }
+    public void setStory(Story story) { this.story = story; }
+
 }
