@@ -6,14 +6,17 @@ import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import ch.uzh.ifi.hase.soprafs26.entity.GamePhase;
 
 @Entity
 @Table(name = "GAME")
 public class Game implements Serializable {
+
+    public static final int MAX_ROUNDS = 20;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private Long timer = 60L;
     private Long turnStartedAt = System.currentTimeMillis();
     private int currentRound = 1;
@@ -26,6 +29,10 @@ public class Game implements Serializable {
 
     @OneToOne(cascade = CascadeType.ALL)
     private Story story;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private GamePhase phase = GamePhase.WRITING;
 
 
 
@@ -47,6 +54,9 @@ public class Game implements Serializable {
     public int getCurrentRound() { return currentRound; }
     public void setCurrentRound(int r) { this.currentRound = r; }
 
+    public GamePhase getPhase() { return phase; }
+    public void setPhase(GamePhase phase) { this.phase = phase; }
+
 
     public void nextRound() {
         setTimer(60L);
@@ -54,6 +64,9 @@ public class Game implements Serializable {
         setCurrentRound(currentRound + 1);
         for (Writer writer : writers) {
             writer.setTurn(!writer.getTurn());
+        }
+        if (currentRound > MAX_ROUNDS) {
+            setPhase(GamePhase.EVALUATION);
         }
     }
     
