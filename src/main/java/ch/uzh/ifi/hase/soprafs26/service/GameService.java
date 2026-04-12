@@ -132,6 +132,7 @@ public class GameService {
                 story.setStoryText(currentStory + " " + prettyInput);
             }
         }
+        requestingWriter.setText("");
         playedGame.nextRound();
         gameRepository.save(playedGame);
         return playedGame;
@@ -182,6 +183,39 @@ public class GameService {
             gameRepository.save(playedGame);
         }
     }
+
+        public Game saveWriterDraft(Long id, String inputText, String bearerToken) {
+        String token = userService.extractToken(bearerToken);
+        Game playedGame = getandCheckGame(id, token);
+        User requestingUser = getandCheckUser(token);
+
+        Writer requestingWriter = null;
+        for (Writer writer : playedGame.getWriters()) {
+            if (writer.getUser().getId().equals(requestingUser.getId())) {
+                requestingWriter = writer;
+                break;
+            }
+        }
+
+        if (requestingWriter == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a writer in game");
+        }
+
+        if (!requestingWriter.getTurn()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "It's not this writers turn!");
+        }
+
+        String prettyInput = (inputText == null) ? "" : inputText;
+
+        if (prettyInput.length() > 200) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Input too long");
+        }
+
+        requestingWriter.setText(prettyInput);
+        gameRepository.save(playedGame);
+        return playedGame;
+    }
+
     public Game getandCheckGame(Long id, String token){
      Game playedGame= gameRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(

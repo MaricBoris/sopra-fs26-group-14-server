@@ -48,6 +48,18 @@ public class GameController {
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(updatedGame);
     }
 
+    @PostMapping("/games/{gameid}/draft")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public GameGetDTO saveWriterDraft(
+            @PathVariable("gameid") Long gameid,
+            @RequestBody GameInputDTO inputDTO,
+            @RequestHeader(value = "Authorization", required = false) String bearerToken) {
+
+        Game updatedGame = gameService.saveWriterDraft(gameid, inputDTO.getInput(), bearerToken);
+        return DTOMapper.INSTANCE.convertEntityToGameGetDTO(updatedGame);
+    }
+
     @PostMapping("/games/{gameid}/leave")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
