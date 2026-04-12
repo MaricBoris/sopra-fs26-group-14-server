@@ -74,6 +74,7 @@ public interface DTOMapper {
     @Mapping(source = "writers", target = "writers")
     @Mapping(source = "judges", target = "judges")
     @Mapping(source = "timer", target = "timer")
+    @Mapping(source = "turnStartedAt", target = "turnStartedAt")
     @Mapping(source = "story", target = "story")
     @Mapping(source = "currentRound", target = "currentRound")
     @Mapping(source = "phase", target = "phase")

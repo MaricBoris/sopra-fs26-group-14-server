@@ -17,8 +17,10 @@ public class Game implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long timer = 60L;
-    private Long turnStartedAt = System.currentTimeMillis();
+
+
+    private Long timer = 90L;
+    private Long turnStartedAt;
     private int currentRound = 1;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
@@ -35,12 +37,13 @@ public class Game implements Serializable {
     private GamePhase phase = GamePhase.WRITING;
 
 
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public Long getTimer() { return timer; }
     public void setTimer(Long timer) { this.timer = timer; }
+    public Long getTurnStartedAt() { return turnStartedAt; }
+    public void setTurnStartedAt(Long turnStartedAt) { this.turnStartedAt = turnStartedAt; }
 
     public List<Writer> getWriters() { return writers; }
     public void setWriters(List<Writer> writers) { this.writers = writers; }
@@ -48,8 +51,6 @@ public class Game implements Serializable {
     public List<Judge> getJudges() { return judges; }
     public void setJudges(List<Judge> judges) { this.judges = judges; }
 
-    public Long getTurnStartedAt() { return turnStartedAt; }
-    public void setTurnStartedAt(Long t) { this.turnStartedAt = t; }
 
     public int getCurrentRound() { return currentRound; }
     public void setCurrentRound(int r) { this.currentRound = r; }
@@ -59,10 +60,12 @@ public class Game implements Serializable {
 
 
     public void nextRound() {
-        setTimer(60L);
+
+        setTimer(90L);
         setTurnStartedAt(System.currentTimeMillis());
         setCurrentRound(currentRound + 1);
-        for (Writer writer : writers) {
+        for (Writer writer: writers){
+
             writer.setTurn(!writer.getTurn());
         }
         if (currentRound > MAX_ROUNDS) {
