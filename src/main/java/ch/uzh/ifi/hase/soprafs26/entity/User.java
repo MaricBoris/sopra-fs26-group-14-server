@@ -44,7 +44,7 @@ public class User implements Serializable {
     @Column(nullable = false, updatable = false)
     private Date creationDate = new Date();
 
-	@ManyToMany(cascade = CascadeType.ALL)
+	@ManyToMany
 	private List<Story> history = new ArrayList<>();
 
 	public Long getId() {
