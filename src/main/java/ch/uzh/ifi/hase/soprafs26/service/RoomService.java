@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
-import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
@@ -196,7 +195,7 @@ public class RoomService {
         game.setWriters(new ArrayList<>(room.getWriters()));
         game.setJudges(new ArrayList<>(room.getJudges()));
         game.setTimer(90L);
-
+        game.setTurnStartedAt(System.currentTimeMillis());
         List<String> genrePool = new ArrayList<>(List.of("Horror", "Comedy", "Sci-Fi", "Fantasy"));
         Collections.shuffle(genrePool);
         game.getWriters().get(0).setGenre(genrePool.get(0));

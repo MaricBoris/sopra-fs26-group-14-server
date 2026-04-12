@@ -11,7 +11,7 @@ public class GameGetDTO {
     private Long timer;
     private List<WriterGetDTO> writers;
     private List<JudgeGetDTO> judges;
-
+    private Long turnStartedAt;
 
     private Story story;
 
@@ -31,6 +31,13 @@ public class GameGetDTO {
         this.timer = timer;
     }
 
+     public Long getTurnStartedAt() {
+        return turnStartedAt;
+    }
+
+    public void setTurnStartedAt(Long turnStartedAt) {
+        this.turnStartedAt = turnStartedAt;
+    }
     public List<WriterGetDTO> getWriters() {
         return writers;
     }

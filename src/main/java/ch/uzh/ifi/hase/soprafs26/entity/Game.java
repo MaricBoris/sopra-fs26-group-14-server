@@ -14,8 +14,9 @@ public class Game implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long timer = 60L;
-
+    private Long timer = 90L;
+    private Long turnStartedAt;
+    
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Writer> writers = new ArrayList<>();
 
@@ -26,12 +27,13 @@ public class Game implements Serializable {
     private Story story;
 
 
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public Long getTimer() { return timer; }
     public void setTimer(Long timer) { this.timer = timer; }
+    public Long getTurnStartedAt() { return turnStartedAt; }
+    public void setTurnStartedAt(Long turnStartedAt) { this.turnStartedAt = turnStartedAt; }
 
     public List<Writer> getWriters() { return writers; }
     public void setWriters(List<Writer> writers) { this.writers = writers; }
@@ -40,7 +42,8 @@ public class Game implements Serializable {
     public void setJudges(List<Judge> judges) { this.judges = judges; }
 
     public void nextRound() {
-        setTimer(60L);
+        setTimer(90L);
+        setTurnStartedAt(System.currentTimeMillis());
         for (Writer writer: writers){
             writer.setTurn(!writer.getTurn());
         }
