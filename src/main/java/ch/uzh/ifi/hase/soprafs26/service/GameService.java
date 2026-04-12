@@ -80,11 +80,18 @@ public class GameService {
             else{
                 gameRepository.save(playedGame);
             }
-        }   
-
-        if (playedGame.getWriters().size()!=2 || playedGame.getJudges().size()!=1 ){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"); //Check 400 
         }
+        if (playedGame.getWriters().size()!=2 || playedGame.getJudges().size()!=1 ){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"); //Check 400
+        }
+
+        if (playedGame.getTimer() > 0) {
+            long elapsed = (now - playedGame.getTurnStartedAt()) / 1000L;
+            long remaining = Math.max(0L, 60L - elapsed);
+            playedGame.setTimer(remaining);
+            gameRepository.save(playedGame);
+        }
+
         return playedGame;
     }
 
