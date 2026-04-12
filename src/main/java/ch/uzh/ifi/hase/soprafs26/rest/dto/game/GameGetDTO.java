@@ -11,6 +11,7 @@ public class GameGetDTO {
     private Long timer;
     private List<WriterGetDTO> writers;
     private List<JudgeGetDTO> judges;
+    private int currentRound;
 
 
     private Story story;
@@ -55,4 +56,8 @@ public class GameGetDTO {
     public void setStory(Story story) {
         this.story = story;
     }
+
+    public int getCurrentRound() { return currentRound; }
+    public void setCurrentRound(int currentRound) { this.currentRound = currentRound; }
+
 }

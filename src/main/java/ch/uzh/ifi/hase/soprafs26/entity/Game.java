@@ -15,6 +15,8 @@ public class Game implements Serializable {
     private Long id;
 
     private Long timer = 60L;
+    private Long turnStartedAt = System.currentTimeMillis();
+    private int currentRound = 1;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Writer> writers = new ArrayList<>();
@@ -39,13 +41,21 @@ public class Game implements Serializable {
     public List<Judge> getJudges() { return judges; }
     public void setJudges(List<Judge> judges) { this.judges = judges; }
 
+    public Long getTurnStartedAt() { return turnStartedAt; }
+    public void setTurnStartedAt(Long t) { this.turnStartedAt = t; }
+
+    public int getCurrentRound() { return currentRound; }
+    public void setCurrentRound(int r) { this.currentRound = r; }
+
+
     public void nextRound() {
         setTimer(60L);
-        for (Writer writer: writers){
+        setTurnStartedAt(System.currentTimeMillis());
+        setCurrentRound(currentRound + 1);
+        for (Writer writer : writers) {
             writer.setTurn(!writer.getTurn());
         }
     }
-    
     
 
     public Story getStory() { return story; }

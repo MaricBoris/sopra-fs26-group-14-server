@@ -186,7 +186,6 @@ public class RoomService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Error: The Lobby leader has to start the game");
         }
-
         if (room.getWriters().size() != 2 || room.getJudges().size() != 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Error: Wrong state and/or credential exchange");
@@ -195,7 +194,7 @@ public class RoomService {
         Game game = new Game();
         game.setWriters(new ArrayList<>(room.getWriters()));
         game.setJudges(new ArrayList<>(room.getJudges()));
-        game.setTimer(90L);
+        game.setTimer(60L);
 
         List<String> genrePool = new ArrayList<>(List.of("Horror", "Comedy", "Sci-Fi", "Fantasy"));
         Collections.shuffle(genrePool);
