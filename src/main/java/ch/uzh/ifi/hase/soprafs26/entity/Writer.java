@@ -27,6 +27,9 @@ public class Writer implements Serializable {
     @Column(nullable = false)
     private Long lastSeenAt = System.currentTimeMillis();
 
+    @Column(columnDefinition = "TEXT")
+    private String quote;
+
 
     public Writer() {}
     public Writer(User user) { this.user = user; }
@@ -48,4 +51,7 @@ public class Writer implements Serializable {
 
     public Long getLastSeenAt() { return lastSeenAt; }
     public void setLastSeenAt(Long lastSeenAt) { this.lastSeenAt = lastSeenAt; }
+
+    public String getQuote() { return quote; }
+    public void setQuote(String quote) { this.quote = quote; }
 }

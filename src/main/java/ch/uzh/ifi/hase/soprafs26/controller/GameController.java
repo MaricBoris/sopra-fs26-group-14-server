@@ -114,5 +114,14 @@ public class GameController {
         Game game = gameService.getGameForUser(bearerToken);
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
     }
+
+    @GetMapping("/games/{gameid}/quotes")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public GameGetDTO fetchQuote(@PathVariable("gameid") Long gameid, @RequestParam("player") Integer player,
+            @RequestHeader(value = "Authorization", required = false) String bearerToken) {
+        Game game = gameService.assignQuote(gameid, player, bearerToken);
+        return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+    }
 }
 

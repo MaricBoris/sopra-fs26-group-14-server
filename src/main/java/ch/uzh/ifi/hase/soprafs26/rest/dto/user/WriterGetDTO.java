@@ -6,6 +6,7 @@ public class WriterGetDTO {
     private Boolean turn;
     private String genre;
     private String text;
+    private String quote;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -21,4 +22,7 @@ public class WriterGetDTO {
 
     public String getText() { return text; }
     public void setText(String text) { this.text = text; }
+
+    public String getQuote() { return quote; }
+    public void setQuote(String quote) { this.quote = quote; }
 }

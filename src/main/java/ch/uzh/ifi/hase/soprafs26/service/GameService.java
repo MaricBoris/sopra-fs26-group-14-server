@@ -25,11 +25,15 @@ public class GameService {
     private final UserRepository userRepository;
     private final UserService userService;
 
+
+    private final QuoteService quoteService;
+
     @Autowired
-    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository) {
+    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, QuoteService quoteService) {
         this.gameRepository = gameRepository;
         this.userService = userService;
         this.userRepository=userRepository;
+        this.quoteService = quoteService;
     }
 
     public Game getGame(Long id, String bearerToken) {
@@ -365,6 +369,25 @@ public class GameService {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No active game found for this user"));
+    }
+
+    public Game assignQuote(Long id, Integer player, String bearerToken) {
+        String token = userService.extractToken(bearerToken);
+        Game playedGame = getandCheckGame(id, token);
+        User requestingUser = getandCheckUser(token);
+
+        getJudgeFromUser(requestingUser, playedGame); // throws 403 if not a judge
+
+        String quote = quoteService.fetchRandomQuote();
+        if (quote == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to fetch quote from external API");
+        }
+
+        Writer targetWriter = playedGame.getWriters().get(player - 1);
+        targetWriter.setQuote(quote);
+
+        gameRepository.saveAndFlush(playedGame);
+        return playedGame;
     }
 }
 
