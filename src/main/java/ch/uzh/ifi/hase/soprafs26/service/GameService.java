@@ -2,7 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
-
+import ch.uzh.ifi.hase.soprafs26.entity.GamePhase;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -103,6 +103,11 @@ public class GameService {
         String token = userService.extractToken(bearerToken);
         Game playedGame=getandCheckGame(id, token);
         User requestingUser=getandCheckUser(token);
+
+        if (playedGame.getPhase() != GamePhase.WRITING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Users may not write anymore");
+        }
+
         boolean WriterInGame=false;
         Writer requestingWriter=null;
         for (Writer writer : playedGame.getWriters()) {

@@ -60,4 +60,9 @@ public class GameGetDTO {
     public int getCurrentRound() { return currentRound; }
     public void setCurrentRound(int currentRound) { this.currentRound = currentRound; }
 
+    private String phase;
+
+    public String getPhase() { return phase; }
+    public void setPhase(String phase) { this.phase = phase; }
+
 }
