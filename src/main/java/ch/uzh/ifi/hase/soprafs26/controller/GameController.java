@@ -76,53 +76,81 @@ public class GameController {
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public GameGetDTO voteGame(@PathVariable Long gameId,
-                                @RequestHeader(value = "Authorization") String bearerToken, @RequestBody UserPostDTO userPostVoted) throws InterruptedException {
+                                @RequestHeader(value = "Authorization") String bearerToken, @RequestBody Long writerId) throws InterruptedException {
+        System.out.println("=== VOTE ENDPOINT HIT ===");
+        System.out.println("gameId: " + gameId);
+        System.out.println("bearerToken: " + bearerToken);
+        System.out.println("writerId: " + writerId);
+
+
         Game currentGame = gameService.getGame(gameId);
+        System.out.println("1. Got game, phase: " + currentGame.getPhase() + ", timer: " + currentGame.getTimer());
 
         String token = bearerToken;
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
 
-        User userVoted = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostVoted);
+        Writer voted = gameService.findWriterFromId(writerId, currentGame);
+        System.out.println("2. Found voted writer, id: " + voted.getId());
+
         User userJudge = gameService.findUserFromToken(token);
+        System.out.println("3. Found judge, id: " + userJudge.getId());
 
         Judge judge = gameService.getJudgeFromUser(userJudge, currentGame);
-        Writer voted = gameService.getWriterFromUser(userVoted, currentGame);
+        System.out.println("4. Got judge entity");
 
         gameService.checkGameIsOver(currentGame);
+        System.out.println("5. Game over check passed");
 
         gameService.addVote(currentGame, voted, judge);
+        System.out.println("6. Vote added, entering wait loop");
 
         long waited = 0L;
         while (!gameService.allJudgesVoted(currentGame) && waited < 70) {
             Thread.sleep(1000);
             waited++;
         }
+        System.out.println("7. Wait loop done, waited " + waited + "s");
 
         if(currentGame.getStory().getWinner() != null){
+            System.out.println("8a. Winner already set, returning");
             return DTOMapper.INSTANCE.convertEntityToGameGetDTO(currentGame);
         }
 
         Writer winner = gameService.determineWinner(currentGame);
-        
+        System.out.println("8b. Winner determined, id: " + winner.getId());
+
         gameService.updateStory(winner, currentGame);
+        System.out.println("9. Story updated");
 
         gameService.updateHistory(currentGame);
+        System.out.println("10. History updated");
 
         gameService.clearVotes(currentGame);
+        System.out.println("11. Votes cleared");
+
         gameService.cleanupGame(currentGame);
+        System.out.println("12. Game cleaned up, returning");
 
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(currentGame);
     }
 
+
+    @DeleteMapping("/games/{gameId}")
+    @ResponseStatus(HttpStatus.OK)
+    public void deleteGame(@PathVariable Long gameId,
+                            @RequestHeader(value = "Authorization") String bearerToken) {
+        Game currentGame = gameService.getGame(gameId);
+        gameService.deleteGame(currentGame);
+    }
 
     // 📝 GET /games/current, returns the active game for the authenticated user
     // 📝 used by non-leader players to get gameId after room is dissolved on game start
     @GetMapping("/games/current")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public GameGetDTO getCurrentGame(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
+    public GameGetDTO getCurrentGame(@RequestHeader(value = "Authorization", String bearerToken) {
         Game game = gameService.getGameForUser(bearerToken);
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
     }

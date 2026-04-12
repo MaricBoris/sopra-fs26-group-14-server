@@ -12,7 +12,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.GamePhase;
 @Table(name = "GAME")
 public class Game implements Serializable {
 
-    public static final int MAX_ROUNDS = 20;
+    public static final int MAX_ROUNDS = 6;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

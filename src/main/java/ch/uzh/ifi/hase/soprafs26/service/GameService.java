@@ -315,6 +315,16 @@ public class GameService {
     }
 
 
+    public Writer findWriterFromId(Long id, Game currentGame){
+        String baseErrorMessage = "Error: You are not allowed to vote for a non writer.";
+        for (Writer writer : currentGame.getWriters()){
+            if(writer.getId().equals(id)){
+                return writer;
+            }
+        }  
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, baseErrorMessage);
+    }
+
     public Writer getWriterFromUser(User userWriter, Game currentGame){
         String baseErrorMessage = "Error: You are not allowed to vote for a non writer.";
         for (Writer writer : currentGame.getWriters()){
@@ -339,9 +349,9 @@ public class GameService {
 	}
 
     public void checkGameIsOver(Game currentGame){
-        String baseErrorMessage = "Error: The game is not over.";
-        if(!currentGame.getTimer().equals(0L)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, baseErrorMessage); 
+    String baseErrorMessage = "Error: The game is not over.";
+    if(!currentGame.getPhase().equals(GamePhase.EVALUATION)){
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, baseErrorMessage); 
         }
     }
 
@@ -385,10 +395,17 @@ public class GameService {
     } 
 
     public void cleanupGame(Game currentGame) {
-    currentGame.getWriters().clear();
-    currentGame.getJudges().clear();
-    gameRepository.delete(currentGame);
+        currentGame.setPhase(GamePhase.FINISHED);
+        gameRepository.save(currentGame);
+    }
 
+    public void deleteGame(Game currentGame) {
+        currentGame.getWriters().clear();
+        currentGame.getJudges().clear();
+        currentGame.setStory(null);  
+        gameRepository.save(currentGame);
+        gameRepository.delete(currentGame);
+        gameRepository.flush();
     }
 
     // 📝 find the active game for the authenticated user (as writer or judge)

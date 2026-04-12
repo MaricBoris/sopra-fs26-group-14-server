@@ -70,6 +70,14 @@ public interface DTOMapper {
     @Mapping(source = "judges", target = "judges")
     RoomGetDTO convertEntityToRoomGetDTO(Room room);
 
+    @Mapping(source = "storyText", target = "storyText")
+    @Mapping(source = "hasWinner", target = "hasWinner")
+    @Mapping(source = "winGenre", target = "winGenre")
+    @Mapping(source = "loseGenre", target = "loseGenre")
+    @Mapping(source = "winner.username", target = "winnerUsername")
+    @Mapping(source = "loser.username", target = "loserUsername")
+    StoryGetDTO convertEntityToStoryGetDTO(Story story);
+
     @Mapping(source = "id", target = "gameId")
     @Mapping(source = "writers", target = "writers")
     @Mapping(source = "judges", target = "judges")
