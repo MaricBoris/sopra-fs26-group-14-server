@@ -73,6 +73,7 @@ public interface DTOMapper {
     @Mapping(source = "writers", target = "writers")
     @Mapping(source = "judges", target = "judges")
     @Mapping(source = "timer", target = "timer")
+    @Mapping(source = "turnStartedAt", target = "turnStartedAt")
     @Mapping(source = "story", target = "story")
     GameGetDTO convertEntityToGameGetDTO(Game game);
 
