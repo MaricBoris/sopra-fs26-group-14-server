@@ -194,9 +194,11 @@ public class RoomService {
         game.setWriters(new ArrayList<>(room.getWriters()));
         game.setJudges(new ArrayList<>(room.getJudges()));
 
+        game.setPhase(GamePhase.WRITING);
+        game.setCurrentRound(1);
         game.setTimer(90L);
         game.setTurnStartedAt(System.currentTimeMillis());
-
+        game.setRoundResolved(false);
         List<String> genrePool = new ArrayList<>(List.of("Horror", "Comedy", "Sci-Fi", "Fantasy"));
         Collections.shuffle(genrePool);
         game.getWriters().get(0).setGenre(genrePool.get(0));

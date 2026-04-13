@@ -36,6 +36,16 @@ public class Game implements Serializable {
     @Column(nullable = false)
     private GamePhase phase = GamePhase.WRITING;
 
+    @Column(nullable = false)
+    private boolean roundResolved = false;
+
+    public boolean isRoundResolved() {
+    return roundResolved;
+    }
+
+    public void setRoundResolved(boolean roundResolved) {
+        this.roundResolved = roundResolved;
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -60,18 +70,19 @@ public class Game implements Serializable {
 
 
     public void nextRound() {
-
         setTimer(90L);
         setTurnStartedAt(System.currentTimeMillis());
         setCurrentRound(currentRound + 1);
-        for (Writer writer: writers){
+        setRoundResolved(false);
 
+        for (Writer writer : writers) {
             writer.setTurn(!writer.getTurn());
         }
+
         if (currentRound > MAX_ROUNDS) {
             setPhase(GamePhase.EVALUATION);
         }
-    }
+}
     
 
     public Story getStory() { return story; }

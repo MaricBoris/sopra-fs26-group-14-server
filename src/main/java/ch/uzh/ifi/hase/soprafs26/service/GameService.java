@@ -2,7 +2,6 @@ package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
-import ch.uzh.ifi.hase.soprafs26.entity.GamePhase;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,15 +24,16 @@ public class GameService {
     private final UserRepository userRepository;
     private final UserService userService;
 
-
+    private final GameCleanupService gameCleanupService;
     private final QuoteService quoteService;
 
     @Autowired
-    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, QuoteService quoteService) {
+    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, QuoteService quoteService, GameCleanupService gameCleanupService) {
         this.gameRepository = gameRepository;
         this.userService = userService;
         this.userRepository=userRepository;
         this.quoteService = quoteService;
+        this.gameCleanupService = gameCleanupService;
     }
 
     public Game getGame(Long id, String bearerToken) {
@@ -62,8 +62,7 @@ public class GameService {
         
         for (Writer writer : playedGame.getWriters()) {
             if (now - writer.getLastSeenAt() > timeoutMillis) {
-                gameRepository.delete(playedGame);
-                gameRepository.flush();
+                gameCleanupService.deleteGameAndFlush(playedGame); //we need to outsource this because of transactional that would rollback the whole thing after the exception
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game ended because a writer disconnected");
                 
             }
@@ -77,8 +76,7 @@ public class GameService {
         if (!disconnectedJudges.isEmpty()) {
             playedGame.getJudges().removeAll(disconnectedJudges);
             if ( playedGame.getJudges().size()<1 ){
-            gameRepository.delete(playedGame);
-            gameRepository.flush();
+            gameCleanupService.deleteGameAndFlush(playedGame);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game ended because judge disconnected");
             }
             else{
@@ -88,51 +86,82 @@ public class GameService {
         if (playedGame.getWriters().size()!=2 || playedGame.getJudges().size()!=1 ){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"); //Check 400
         }
-
-        if (playedGame.getTimer() > 0) {
-            long elapsed = (now - playedGame.getTurnStartedAt()) / 1000L;
-            long remaining = Math.max(0L, 90L - elapsed);
-            playedGame.setTimer(remaining);
-            gameRepository.save(playedGame);
-        }
-
+        resolveExpiredTurnIfNeeded(playedGame);
+        gameRepository.saveAndFlush(playedGame);
         return playedGame;
     }
 
+    private void resolveExpiredTurnIfNeeded(Game playedGame) {
+        if (playedGame == null) return;
+        if (playedGame.getPhase() != GamePhase.WRITING) return;
+        if (playedGame.isRoundResolved()) return;
+        if (playedGame.getTurnStartedAt() == null || playedGame.getTimer() == null) return;
 
-    public Game insertWriterInput(Long id, Integer player , String inputText , String bearerToken) {
+        long now = System.currentTimeMillis();
+        long turnEndsAt = playedGame.getTurnStartedAt() + playedGame.getTimer() * 1000;
 
-        //currently player turned out to be useless, but maybe it's useful later, so decided to keep it
+        if (now < turnEndsAt) {
+            return;
+        }
+
+        Writer activeWriter = null;
+        for (Writer writer : playedGame.getWriters()) {
+            if (writer.getTurn()) {
+                activeWriter = writer;
+                break;
+            }
+        }
+
+        if (activeWriter == null) {
+            throw new ResponseStatusException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "No active writer found"
+            );
+        }
+        activeWriter.setText("");
+
+        playedGame.setRoundResolved(true);
+        playedGame.nextRound();
+
+        gameRepository.saveAndFlush(playedGame);
+    }
+
+    public Game insertWriterInput(Long id, Integer player, String inputText, String bearerToken) {
+
+        // currently player turned out to be useless, but maybe it's useful later, so decided to keep it
 
         String token = userService.extractToken(bearerToken);
-        Game playedGame=getandCheckGame(id, token);
-        User requestingUser=getandCheckUser(token);
+        Game playedGame = getandCheckGame(id, token);
+        User requestingUser = getandCheckUser(token);
+
+        // Falls der Turn inzwischen durch Zeitablauf vorbei ist, erst serverseitig auflösen
+        resolveExpiredTurnIfNeeded(playedGame);
 
         if (playedGame.getPhase() != GamePhase.WRITING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Users may not write anymore");
         }
 
-        boolean WriterInGame=false;
-        Writer requestingWriter=null;
+        if (playedGame.isRoundResolved()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Current round already resolved");
+        }
+
+        Writer requestingWriter = null;
         for (Writer writer : playedGame.getWriters()) {
-            if(writer.getUser().getId().equals(requestingUser.getId())){
-                WriterInGame=true;
-                requestingWriter=writer;
+            if (writer.getUser().getId().equals(requestingUser.getId())) {
+                requestingWriter = writer;
+                break;
             }
         }
-        if (!WriterInGame){
-           throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a writer in game"); //Check 403 
+
+        if (requestingWriter == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a writer in game");
         }
-        if (!requestingWriter.getTurn()){
-           throw new ResponseStatusException(HttpStatus.FORBIDDEN, "It's not this writers turn!"); //Check 403 
+
+        if (!requestingWriter.getTurn()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "It's not this writers turn!");
         }
-        String prettyInput;
-        if(inputText==null){
-            prettyInput="";
-        }
-        else{
-            prettyInput = inputText.trim();
-        }
+
+        String prettyInput = (inputText == null) ? "" : inputText.trim();
 
         Story story = playedGame.getStory();
         if (story == null) {
@@ -148,12 +177,13 @@ public class GameService {
                 story.setStoryText(currentStory + " " + prettyInput);
             }
         }
-        requestingWriter.setText("");
-        playedGame.nextRound();
-        gameRepository.save(playedGame);
-        return playedGame;
-    }
 
+        requestingWriter.setText("");
+        playedGame.setRoundResolved(true);
+        playedGame.nextRound();
+
+        return gameRepository.saveAndFlush(playedGame);
+    }
     public void exitGame(Long id, String bearerToken) {
         String token = userService.extractToken(bearerToken);
         Game playedGame=getandCheckGame(id, token);
