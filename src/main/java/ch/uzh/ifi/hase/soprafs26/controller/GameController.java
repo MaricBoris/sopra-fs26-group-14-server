@@ -150,7 +150,7 @@ public class GameController {
     @GetMapping("/games/current")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public GameGetDTO getCurrentGame(@RequestHeader(value = "Authorization", String bearerToken) {
+    public GameGetDTO getCurrentGame(@RequestHeader(value = "Authorization") String bearerToken) {
         Game game = gameService.getGameForUser(bearerToken);
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
     }
