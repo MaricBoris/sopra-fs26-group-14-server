@@ -1,7 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.entity.*;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,13 +11,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,7 +29,7 @@ public class GameControllerTest {
 
     @MockitoBean
     private GameService gameService;
-/*
+
     @Test
     public void vote_validInput_200Ok() throws Exception {
         Game game = new Game();
@@ -39,21 +37,27 @@ public class GameControllerTest {
         Story story = new Story();
         game.setStory(story);
 
-        UserPostDTO userPostDTO = new UserPostDTO();
-        userPostDTO.setUsername("writerUser");
+        Writer writer = new Writer();
+        writer.setId(10L);
 
         given(gameService.getGame(anyLong())).willReturn(game);
+        given(gameService.findWriterFromId(anyLong(), any(Game.class))).willReturn(writer);
         given(gameService.findUserFromToken(anyString())).willReturn(new User());
         given(gameService.getJudgeFromUser(any(), any())).willReturn(new Judge());
-        given(gameService.getWriterFromUser(any(), any())).willReturn(new Writer());
+        doNothing().when(gameService).checkGameIsOver(any());
+        doNothing().when(gameService).addVote(any(), any(), any());
         given(gameService.allJudgesVoted(any())).willReturn(true);
-        given(gameService.determineWinner(any())).willReturn(new Writer());
+        given(gameService.determineWinner(any())).willReturn(writer);
         given(gameService.updateStory(any(), any())).willReturn(new Story());
+        doNothing().when(gameService).updateHistory(any());
+        doNothing().when(gameService).clearVotes(any());
+        doNothing().when(gameService).cleanupGame(any());
 
+        // Send a Long writerId as the request body (matching @RequestBody Long writerId)
         MockHttpServletRequestBuilder postRequest = post("/games/1/vote")
                 .header("Authorization", "Bearer token123")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
+                .content("10");
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isOk());
@@ -64,16 +68,18 @@ public class GameControllerTest {
         Game game = new Game();
         game.setId(1L);
 
-        UserPostDTO userPostDTO = new UserPostDTO();
+        Writer writer = new Writer();
+        writer.setId(10L);
 
         given(gameService.getGame(anyLong())).willReturn(game);
+        given(gameService.findWriterFromId(anyLong(), any(Game.class))).willReturn(writer);
         given(gameService.findUserFromToken(anyString()))
                 .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Error: You are not Authorized."));
 
         MockHttpServletRequestBuilder postRequest = post("/games/1/vote")
                 .header("Authorization", "Bearer invalidToken")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
+                .content("10");
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isUnauthorized());
@@ -84,9 +90,11 @@ public class GameControllerTest {
         Game game = new Game();
         game.setId(1L);
 
-        UserPostDTO userPostDTO = new UserPostDTO();
+        Writer writer = new Writer();
+        writer.setId(10L);
 
         given(gameService.getGame(anyLong())).willReturn(game);
+        given(gameService.findWriterFromId(anyLong(), any(Game.class))).willReturn(writer);
         given(gameService.findUserFromToken(anyString())).willReturn(new User());
         given(gameService.getJudgeFromUser(any(), any()))
                 .willThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Error: You are not allowed to vote for this game."));
@@ -94,7 +102,7 @@ public class GameControllerTest {
         MockHttpServletRequestBuilder postRequest = post("/games/1/vote")
                 .header("Authorization", "Bearer token123")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
+                .content("10");
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isForbidden());
@@ -102,15 +110,13 @@ public class GameControllerTest {
 
     @Test
     public void vote_gameNotFound_404NotFound() throws Exception {
-        UserPostDTO userPostDTO = new UserPostDTO();
-
         given(gameService.getGame(anyLong()))
                 .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: The provided id is invalid."));
 
         MockHttpServletRequestBuilder postRequest = post("/games/99/vote")
                 .header("Authorization", "Bearer token123")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
+                .content("10");
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isNotFound());
@@ -121,30 +127,22 @@ public class GameControllerTest {
         Game game = new Game();
         game.setId(1L);
 
-        UserPostDTO userPostDTO = new UserPostDTO();
+        Writer writer = new Writer();
+        writer.setId(10L);
 
         given(gameService.getGame(anyLong())).willReturn(game);
+        given(gameService.findWriterFromId(anyLong(), any(Game.class))).willReturn(writer);
         given(gameService.findUserFromToken(anyString())).willReturn(new User());
         given(gameService.getJudgeFromUser(any(), any())).willReturn(new Judge());
-        given(gameService.getWriterFromUser(any(), any())).willReturn(new Writer());
         doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: The game is not over."))
                 .when(gameService).checkGameIsOver(any());
 
         MockHttpServletRequestBuilder postRequest = post("/games/1/vote")
                 .header("Authorization", "Bearer token123")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
+                .content("10");
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isBadRequest());
     }
-
-    private String asJsonString(final Object object) {
-        try {
-            return new ObjectMapper().writeValueAsString(object);
-        } catch (JacksonException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    String.format("The request body could not be created.%s", e.toString()));
-        }
-    }*/
 }
