@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
@@ -15,7 +16,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
 @Service
 @Transactional
