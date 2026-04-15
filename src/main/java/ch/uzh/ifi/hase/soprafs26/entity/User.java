@@ -2,9 +2,11 @@ package ch.uzh.ifi.hase.soprafs26.entity;
 
 import jakarta.persistence.*;
 
-import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
-
+import java.util.List;
+import java.util.ArrayList;
+import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import java.io.Serializable;
+import java.util.Date;
 
 /**
  * Internal User Representation
@@ -18,6 +20,7 @@ import java.io.Serializable;
  */
 @Entity
 @Table(name = "users")
+@Inheritance(strategy = InheritanceType.JOINED)
 public class User implements Serializable {
 
 	private static final long serialVersionUID = 1L;
@@ -26,17 +29,23 @@ public class User implements Serializable {
 	@GeneratedValue
 	private Long id;
 
-	@Column(nullable = false)
-	private String name;
-
 	@Column(nullable = false, unique = true)
 	private String username;
 
 	@Column(nullable = false, unique = true)
 	private String token;
 
-	@Column(nullable = false)
-	private UserStatus status;
+	@Column(nullable = true)
+	private String bio;
+
+    @Column(nullable = false)
+    private String password;
+	
+    @Column(nullable = false, updatable = false)
+    private Date creationDate = new Date();
+
+	@ManyToMany
+	private List<Story> history = new ArrayList<>();
 
 	public Long getId() {
 		return id;
@@ -44,14 +53,6 @@ public class User implements Serializable {
 
 	public void setId(Long id) {
 		this.id = id;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
 	}
 
 	public String getUsername() {
@@ -70,11 +71,18 @@ public class User implements Serializable {
 		this.token = token;
 	}
 
-	public UserStatus getStatus() {
-		return status;
-	}
+    public String getBio() { return bio; }
 
-	public void setStatus(UserStatus status) {
-		this.status = status;
-	}
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getPassword() { return password; }
+
+    public void setPassword(String password) { this.password = password; }
+
+    public Date getCreationDate() { return creationDate; }
+
+    public void setCreationDate(Date creationDate) { this.creationDate = creationDate; }
+
+	public void addStory(Story story) { this.history.add(story); }
+	public List<Story> getHistory() { return history; }
 }
