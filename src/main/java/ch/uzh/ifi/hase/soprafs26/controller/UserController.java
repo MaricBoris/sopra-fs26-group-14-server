@@ -117,4 +117,19 @@ public class UserController {
                            @RequestHeader("Authorization") String bearerToken) {
         userService.deleteUser(id, deleteDTO, bearerToken);
     }
+
+    @GetMapping("/results")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public List<StoryGetDTO> deleteUser(@RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken;
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        userService.findUserFromToken(token);
+        List<StoryGetDTO> results = userService.findAllStories();
+        return results;
+    }
+    
+
 }
