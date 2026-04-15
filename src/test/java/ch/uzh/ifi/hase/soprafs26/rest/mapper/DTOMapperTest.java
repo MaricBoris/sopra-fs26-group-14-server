@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
 import ch.uzh.ifi.hase.soprafs26.entity.*;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.Test;
@@ -13,8 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class DTOMapperTest {
 
+    // --- USER MAPPING ---
+
     @Test
-    public void testCreateUser_fromUserPostDTO_toUser_success() {
+    public void convertUserPostDTOtoEntity_success() {
         UserPostDTO userPostDTO = new UserPostDTO();
         userPostDTO.setUsername("testUsername");
         userPostDTO.setPassword("testPassword123");
@@ -26,12 +29,10 @@ public class DTOMapperTest {
     }
 
     @Test
-    public void testGetUser_fromUser_toUserGetDTO_success() {
+    public void convertEntityToUserGetDTO_success() {
         User user = new User();
         user.setId(1L);
         user.setUsername("publicUser");
-
-        // 1. Manually trigger uncovered User setter
         Date now = new Date();
         user.setCreationDate(now);
 
@@ -39,12 +40,26 @@ public class DTOMapperTest {
 
         assertEquals(user.getId(), userGetDTO.getId());
         assertEquals(user.getUsername(), userGetDTO.getUsername());
-        assertEquals(now, user.getCreationDate()); // Verification
+        assertEquals(now, user.getCreationDate());
     }
 
     @Test
-    public void testGetWriter_fromWriter_toWriterGetDTO_success() {
-        // 1. Setup
+    public void convertEntityToUserPersonalGetDTO_success() {
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("personalUser");
+        user.setToken("secret-token");
+
+        UserPersonalGetDTO dto = DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(user);
+
+        assertEquals(user.getId(), dto.getId());
+        assertEquals(user.getToken(), dto.getToken());
+    }
+
+    // --- ROLES MAPPING (WRITER & JUDGE) ---
+
+    @Test
+    public void convertEntityToWriterGetDTO_success() {
         User user = new User();
         user.setId(10L);
         user.setUsername("writerUser");
@@ -59,25 +74,20 @@ public class DTOMapperTest {
         Long time = 12345L;
         writer.setLastSeenAt(time);
 
-        // 2. MAP
         WriterGetDTO dto = DTOMapper.INSTANCE.convertEntityToWriterGetDTO(writer);
 
-        // 3. COVER WriterGetDTO (Fixes the 0% in your latest screenshot)
         assertEquals(user.getId(), dto.getId());
         assertEquals(user.getUsername(), dto.getUsername());
-        assertEquals(true, dto.getTurn());              // <--- Hits getTurn()
-        assertEquals("Sci-Fi", dto.getGenre());         // <--- Hits getGenre()
-        assertEquals("The story begins...", dto.getText()); // <--- Hits getText()
+        assertEquals(true, dto.getTurn());
+        assertEquals("Sci-Fi", dto.getGenre());
+        assertEquals("The story begins...", dto.getText());
         assertEquals("To be or not to be.", dto.getQuote());
-
-        // 4. COVER Writer Entity (Keeps Entity at 100%)
         assertEquals(55L, writer.getId());
         assertEquals(time, writer.getLastSeenAt());
     }
 
     @Test
-    public void testGetJudge_fromJudge_toJudgeGetDTO_success() {
-        // 1. Setup
+    public void convertEntityToJudgeGetDTO_success() {
         User user = new User();
         user.setId(20L);
         user.setUsername("judgeUser");
@@ -89,31 +99,24 @@ public class DTOMapperTest {
         Long time = 67890L;
         judge.setLastSeenAt(time);
 
-        // 2. MAP
         JudgeGetDTO dto = DTOMapper.INSTANCE.convertEntityToJudgeGetDTO(judge);
 
-        // 3. COVER JudgeGetDTO
         assertEquals(user.getId(), dto.getId());
         assertEquals(user.getUsername(), dto.getUsername());
-        assertEquals(5L, dto.getInsertions()); // <--- Hits getInsertions()
-
-        // 4. COVER Judge Entity
+        assertEquals(5L, dto.getInsertions());
         assertEquals(88L, judge.getId());
         assertEquals(time, judge.getLastSeenAt());
     }
 
+    // --- GAME, ROOM & STORY MAPPING ---
+
     @Test
-    public void testGetStory_fromStory_toStoryGetDTO_success() {
+    public void convertEntityToStoryGetDTO_success() {
         User winner = new User(); winner.setUsername("win");
         User loser = new User(); loser.setUsername("loss");
-
-        // 7. Use the large constructor to cover it
         Story story = new Story(winner, loser, "Old text", true, "WinG", "LoseG", new ArrayList<>());
 
-        // 8. Trigger uncovered setStoryText
         story.setStoryText("New story text");
-
-        // 9. Trigger uncovered getJudges
         User j = new User();
         story.getJudges().add(j);
 
@@ -126,7 +129,7 @@ public class DTOMapperTest {
     }
 
     @Test
-    public void testGetRoom_nullLists_returnsZeroPlayerCount() {
+    public void convertEntityToRoomGetDTO_nullLists_returnsZeroPlayerCount() {
         Room room = new Room();
         room.setId(2L);
         room.setName("EmptyRoom");
@@ -140,33 +143,43 @@ public class DTOMapperTest {
         assertEquals(0, roomGetDTO.getPlayerCount());
     }
 
-    // ------------------ DIRECT DTO TESTS ------------------
     @Test
-    public void testUserPutDTO_gettersSetters_success() {
+    public void convertEntityToGameGetDTO_success() {
+        Game game = new Game();
+        game.setId(100L);
+        game.setTimer(90L);
+        game.setCurrentRound(1);
+
+        GameGetDTO dto = DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+
+        assertEquals(100L, dto.getGameId());
+        assertEquals(90L, dto.getTimer());
+        assertEquals(1, dto.getCurrentRound());
+    }
+
+    // --- DIRECT DTO POJO TESTS ---
+
+    @Test
+    public void testUserPutDTO_gettersSetters() {
         UserPutDTO userPutDTO = new UserPutDTO();
         userPutDTO.setBio("This is a new bio");
-
-        // Asserting the getter fixes the 0% coverage on getBio()
         assertEquals("This is a new bio", userPutDTO.getBio());
     }
 
     @Test
-    public void testUserPasswordPutDTO_gettersSetters_success() {
+    public void testUserPasswordPutDTO_gettersSetters() {
         UserPasswordPutDTO dto = new UserPasswordPutDTO();
         dto.setCurrentPassword("oldPassword123");
         dto.setNewPassword("newPassword456");
 
-        // Asserting both getters ensures full coverage
         assertEquals("oldPassword123", dto.getCurrentPassword());
         assertEquals("newPassword456", dto.getNewPassword());
     }
 
     @Test
-    public void testUserDeleteDTO_gettersSetters_success() {
+    public void testUserDeleteDTO_gettersSetters() {
         UserDeleteDTO userDeleteDTO = new UserDeleteDTO();
         userDeleteDTO.setPassword("permanentDeletePassword");
-
-        // Asserting the getter ensures full coverage
         assertEquals("permanentDeletePassword", userDeleteDTO.getPassword());
     }
 }
