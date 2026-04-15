@@ -2,7 +2,6 @@ package ch.uzh.ifi.hase.soprafs26.entity;
 
 import java.util.Date;
 import java.io.Serializable;
-import ch.uzh.ifi.hase.soprafs26.entity.User;
 import java.util.ArrayList;
 import java.util.List;
 
