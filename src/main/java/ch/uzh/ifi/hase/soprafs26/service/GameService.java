@@ -353,7 +353,7 @@ public class GameService {
     public Writer findWriterFromId(Long id, Game currentGame){
         String baseErrorMessage = "Error: You are not allowed to vote for a non writer.";
         for (Writer writer : currentGame.getWriters()){
-            if(writer.getId().equals(id)){
+            if(writer.getUser().getId().equals(id)){
                 return writer;
             }
         }  

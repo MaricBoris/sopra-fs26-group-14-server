@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,9 @@ public class GameServiceTest {
 
     @Mock
     private QuoteService quoteService;
+
+    @Mock
+    private StoryRepository storyRepository;
 
     @InjectMocks
     private GameService gameService;
@@ -170,8 +174,12 @@ public class GameServiceTest {
 
     @Test
     public void findWriterFromId_validId_returnsWriter() {
+        User user = new User();
+        user.setId(5L);
+
         Writer writer = new Writer();
-        writer.setId(5L);
+        writer.setId(1L);
+        writer.setUser(user);
 
         Game game = new Game();
         game.setWriters(List.of(writer));
@@ -182,8 +190,11 @@ public class GameServiceTest {
 
     @Test
     public void findWriterFromId_invalidId_throws400() {
+        User user = new User();
+        user.setId(5L);
         Writer writer = new Writer();
         writer.setId(5L);
+        writer.setUser(user);
 
         Game game = new Game();
         game.setWriters(List.of(writer));
@@ -195,10 +206,18 @@ public class GameServiceTest {
 
     @Test
     public void findWriterFromId_multipleWriters_returnsCorrectOne() {
+        User user1 = new User();
+        user1.setId(1L);
+        User user2 = new User();
+        user2.setId(2L);
+
         Writer writer1 = new Writer();
         writer1.setId(1L);
+        writer1.setUser(user1);
+
         Writer writer2 = new Writer();
         writer2.setId(2L);
+        writer2.setUser(user2);
 
         Game game = new Game();
         game.setWriters(List.of(writer1, writer2));
