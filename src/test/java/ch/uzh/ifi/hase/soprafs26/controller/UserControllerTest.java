@@ -1,8 +1,14 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserDeleteDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPasswordPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPutDTO;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
-
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPostDTO;
@@ -19,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -323,6 +330,116 @@ public class UserControllerTest {
     	mockMvc.perform(getRequest)
         	.andExpect(status().isUnauthorized());
 	}
+
+    @Test
+    public void getUser_nonBearerHeader_returnsUser() throws Exception {
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("testUsername");
+
+        given(userService.findUserFromId(1L)).willReturn(user);
+        given(userService.findUserFromToken(any())).willReturn(user);
+
+        // Branch: token != null AND DOES NOT start with "Bearer "
+        MockHttpServletRequestBuilder getRequest = get("/users/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "just-a-raw-token-string");
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk());
+    }
+
+    // --- 2. Fix "Fully Uncovered" changePassword (PUT) ---
+
+    @Test
+    public void changePassword_validInput_200Ok() throws Exception {
+        UserPasswordPutDTO passwordDTO = new UserPasswordPutDTO();
+        passwordDTO.setCurrentPassword("oldPass");
+        passwordDTO.setNewPassword("newPass");
+
+        mockMvc.perform(put("/users/1/password")
+                        .header("Authorization", "Bearer token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(passwordDTO)))
+                .andExpect(status().isOk());
+    }
+
+    // --- 3. Fix "Fully Uncovered" updateUserBio (PUT) ---
+
+    @Test
+    public void updateUserBio_validInput_200Ok() throws Exception {
+        User user = new User();
+        user.setId(1L);
+        user.setBio("Updated Bio");
+
+        UserPutDTO putDTO = new UserPutDTO();
+        putDTO.setBio("Updated Bio");
+
+        given(userService.updateUserBio(anyLong(), any(), any())).willReturn(user);
+
+        mockMvc.perform(put("/users/1")
+                        .header("Authorization", "Bearer token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(putDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bio", is("Updated Bio")));
+    }
+
+    // --- 4. Fix "Fully Uncovered" deleteUser (DELETE) ---
+
+    @Test
+    public void deleteUser_withBody_204NoContent() throws Exception {
+        UserDeleteDTO deleteDTO = new UserDeleteDTO();
+        deleteDTO.setPassword("pass");
+
+        mockMvc.perform(delete("/users/1")
+                        .header("Authorization", "Bearer token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(deleteDTO)))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    public void deleteUser_noBody_204NoContent() throws Exception {
+        // Testing the (required = false) branch of @RequestBody
+        mockMvc.perform(delete("/users/1")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isNoContent());
+    }
+
+    // --- 1. Fix the Red Block for /results ---
+
+    @Test
+    public void getResults_validBearerToken_200Ok() throws Exception {
+        // Mock the service to return an empty list or some stories
+        given(userService.findAllStories()).willReturn(new ArrayList<>());
+
+        mockMvc.perform(get("/results")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk());
+    }
+
+    // --- 2. Fix the Yellow Diamond (Branch Coverage) ---
+    // This covers the case where token != null BUT startsWith("Bearer ") is FALSE
+    @Test
+    public void getResults_nonBearerToken_200Ok() throws Exception {
+        given(userService.findAllStories()).willReturn(new ArrayList<>());
+
+        mockMvc.perform(get("/results")
+                        .header("Authorization", "just-a-raw-token-without-bearer-prefix"))
+                .andExpect(status().isOk());
+    }
+
+    // --- 3. Fix the "Token is Null" branch ---
+    @Test
+    public void getResults_nullToken_200Ok() throws Exception {
+        given(userService.findAllStories()).willReturn(new ArrayList<>());
+
+        // Now this will correctly hit the 'if (token == null)' path
+        // inside your method and return 200 instead of 400.
+        mockMvc.perform(get("/results"))
+                .andExpect(status().isOk());
+    }
 
 	/**
 	 * Helper Method to convert userPostDTO into a JSON string such that the input
