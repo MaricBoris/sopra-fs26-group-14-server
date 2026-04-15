@@ -1,11 +1,13 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
+import ch.uzh.ifi.hase.soprafs26.entity.*;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
+
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
-
-import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 
 /**
  * DTOMapper
@@ -23,13 +25,66 @@ public interface DTOMapper {
 
 	DTOMapper INSTANCE = Mappers.getMapper(DTOMapper.class);
 
-	@Mapping(source = "name", target = "name")
-	@Mapping(source = "username", target = "username")
+    @Mapping(source = "username", target = "username")
+	@Mapping(source = "password", target = "password")
+    @Mapping(source = "bio", target = "bio")
 	User convertUserPostDTOtoEntity(UserPostDTO userPostDTO);
 
+    //@Mapping(source = "history", target = "history")
 	@Mapping(source = "id", target = "id")
-	@Mapping(source = "name", target = "name")
 	@Mapping(source = "username", target = "username")
-	@Mapping(source = "status", target = "status")
+    @Mapping(source = "bio", target = "bio")
+    @Mapping(source = "creationDate", target = "creationDate")
 	UserGetDTO convertEntityToUserGetDTO(User user);
+
+    //@Mapping(source = "history", target = "history")
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "username", target = "username")
+    @Mapping(source = "bio", target = "bio")
+    @Mapping(source = "creationDate", target = "creationDate")
+    @Mapping(source = "token", target = "token")
+    UserPersonalGetDTO convertEntityToUserPersonalGetDTO(User user);
+
+    @Mapping(source = "name", target = "name")
+    Room convertRoomPostDTOtoEntity(RoomPostDTO roomPostDTO);
+
+    @Mapping(source = "user.id", target = "id")
+    @Mapping(source = "user.username", target = "username")
+    @Mapping(source = "turn", target = "turn")
+    @Mapping(source = "genre", target = "genre")
+    @Mapping(source = "text", target = "text")
+    @Mapping(source = "quote", target = "quote")
+    WriterGetDTO convertEntityToWriterGetDTO(Writer writer);
+
+    @Mapping(source = "user.id", target = "id")
+    @Mapping(source = "user.username", target = "username")
+    @Mapping(source = "insertions", target = "insertions")
+    JudgeGetDTO convertEntityToJudgeGetDTO(Judge judge);
+
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "name", target = "name")
+    @Mapping(source = "playerCount", target = "playerCount")
+    @Mapping(source = "lobbyLeader", target = "lobbyLeader")
+    @Mapping(source = "users", target = "users")
+    @Mapping(source = "writers", target = "writers")
+    @Mapping(source = "judges", target = "judges")
+    RoomGetDTO convertEntityToRoomGetDTO(Room room);
+
+    @Mapping(source = "storyText", target = "storyText")
+    @Mapping(source = "hasWinner", target = "hasWinner")
+    @Mapping(source = "winGenre", target = "winGenre")
+    @Mapping(source = "loseGenre", target = "loseGenre")
+    @Mapping(source = "winner.username", target = "winnerUsername")
+    @Mapping(source = "loser.username", target = "loserUsername")
+    StoryGetDTO convertEntityToStoryGetDTO(Story story);
+
+    @Mapping(source = "id", target = "gameId")
+    @Mapping(source = "writers", target = "writers")
+    @Mapping(source = "judges", target = "judges")
+    @Mapping(source = "timer", target = "timer")
+    @Mapping(source = "turnStartedAt", target = "turnStartedAt")
+    @Mapping(source = "story", target = "story")
+    @Mapping(source = "currentRound", target = "currentRound")
+    @Mapping(source = "phase", target = "phase")
+    GameGetDTO convertEntityToGameGetDTO(Game game);
 }
