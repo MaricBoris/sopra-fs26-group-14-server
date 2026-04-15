@@ -176,4 +176,17 @@ public class DTOMapperTest {
         assertEquals(1, gameGetDTO.getWriters().size());
         assertEquals(user.getUsername(), gameGetDTO.getWriters().get(0).getUsername());
     }
+
+    @Test
+    public void testRoomGetDTO_playerCount_nullUsers_returnsZero() {
+        // create the DTO directly to test the logic in the getter
+        RoomGetDTO roomGetDTO = new RoomGetDTO();
+
+        // Ensure users is null (it is by default, but let's be explicit)
+        roomGetDTO.setUsers(null);
+
+        // This triggers the (users != null) ? users.size() : 0; logic
+        // specifically the ": 0" part.
+        assertEquals(0, roomGetDTO.getPlayerCount());
+    }
 }
