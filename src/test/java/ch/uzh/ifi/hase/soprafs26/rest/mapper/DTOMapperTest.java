@@ -139,4 +139,34 @@ public class DTOMapperTest {
         assertNotNull(roomGetDTO);
         assertEquals(0, roomGetDTO.getPlayerCount());
     }
+
+    // ------------------ DIRECT DTO TESTS ------------------
+    @Test
+    public void testUserPutDTO_gettersSetters_success() {
+        UserPutDTO userPutDTO = new UserPutDTO();
+        userPutDTO.setBio("This is a new bio");
+
+        // Asserting the getter fixes the 0% coverage on getBio()
+        assertEquals("This is a new bio", userPutDTO.getBio());
+    }
+
+    @Test
+    public void testUserPasswordPutDTO_gettersSetters_success() {
+        UserPasswordPutDTO dto = new UserPasswordPutDTO();
+        dto.setCurrentPassword("oldPassword123");
+        dto.setNewPassword("newPassword456");
+
+        // Asserting both getters ensures full coverage
+        assertEquals("oldPassword123", dto.getCurrentPassword());
+        assertEquals("newPassword456", dto.getNewPassword());
+    }
+
+    @Test
+    public void testUserDeleteDTO_gettersSetters_success() {
+        UserDeleteDTO userDeleteDTO = new UserDeleteDTO();
+        userDeleteDTO.setPassword("permanentDeletePassword");
+
+        // Asserting the getter ensures full coverage
+        assertEquals("permanentDeletePassword", userDeleteDTO.getPassword());
+    }
 }
