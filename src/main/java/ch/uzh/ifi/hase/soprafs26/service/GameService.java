@@ -296,6 +296,9 @@ public class GameService {
     }
 
     public synchronized void addVote(Game currentGame, Writer voted, Judge judge) {
+        if (voted.getId() == null){
+            return
+        }
         gameVotes.computeIfAbsent(currentGame.getId(), k -> new HashMap<>()).put(judge, voted);
     }
 
@@ -403,12 +406,17 @@ public class GameService {
         for (Judge judge : currentGame.getJudges()) {
             judgeUsers.add(judge.getUser());
         }
-
-        Story newStory = new Story (winner.getUser(), loser.getUser(), currentGame.getStory().getStoryText(), hasWinner, winner.getGenre(), loser.getGenre(), judgeUsers);
+        Story oldStory = currentGame.getStory();
+        Story newStory = new Story (winner.getUser()
+        , loser.getUser(), currentGame.getStory().getStoryText(), hasWinner, winner.getGenre(), loser.getGenre(), judgeUsers);
 
         currentGame.setStory(newStory);
 
         gameRepository.save(currentGame);
+
+        if (oldStory != null) {
+            storyRepository.delete(oldStory);
+        }
 
         return newStory;
     }
