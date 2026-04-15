@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 
 import java.util.List;
 import java.util.ArrayList;
-import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import java.io.Serializable;
 import java.util.Date;
 
