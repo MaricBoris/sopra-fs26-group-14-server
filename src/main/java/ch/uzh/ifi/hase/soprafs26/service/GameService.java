@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
@@ -20,7 +21,7 @@ import java.util.HashMap;
 public class GameService {
 
     private final GameRepository gameRepository;
-
+    private final StoryRepository storyRepository;
     private final UserRepository userRepository;
     private final UserService userService;
 
@@ -28,8 +29,9 @@ public class GameService {
     private final QuoteService quoteService;
 
     @Autowired
-    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, QuoteService quoteService, GameCleanupService gameCleanupService) {
+    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, StoryRepository storyRepository, QuoteService quoteService, GameCleanupService gameCleanupService) {
         this.gameRepository = gameRepository;
+        this.storyRepository = storyRepository;
         this.userService = userService;
         this.userRepository=userRepository;
         this.quoteService = quoteService;
@@ -297,7 +299,7 @@ public class GameService {
 
     public synchronized void addVote(Game currentGame, Writer voted, Judge judge) {
         if (voted.getId() == null){
-            return
+            return;
         }
         gameVotes.computeIfAbsent(currentGame.getId(), k -> new HashMap<>()).put(judge, voted);
     }
@@ -407,8 +409,7 @@ public class GameService {
             judgeUsers.add(judge.getUser());
         }
         Story oldStory = currentGame.getStory();
-        Story newStory = new Story (winner.getUser()
-        , loser.getUser(), currentGame.getStory().getStoryText(), hasWinner, winner.getGenre(), loser.getGenre(), judgeUsers);
+        Story newStory = new Story (winner.getUser(), loser.getUser(), currentGame.getStory().getStoryText(), hasWinner, winner.getGenre(), loser.getGenre(), judgeUsers);
 
         currentGame.setStory(newStory);
 

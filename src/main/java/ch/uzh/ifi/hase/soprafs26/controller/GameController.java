@@ -80,16 +80,16 @@ public class GameController {
 
 
         Game currentGame = gameService.getGame(gameId);
+        Writer voted = new Writer();
 
         String token = bearerToken;
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
         if (writerId < 0){
-            Writer voted = new Writer();
         }
         else{
-            Writer voted = gameService.findWriterFromId(writerId, currentGame);
+            voted = gameService.findWriterFromId(writerId, currentGame);
         }
 
         User userJudge = gameService.findUserFromToken(token);
