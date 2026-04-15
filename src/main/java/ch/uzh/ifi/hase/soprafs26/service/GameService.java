@@ -60,7 +60,7 @@ public class GameService {
         }
        
         
-        for (Writer writer : playedGame.getWriters()) {
+        /*for (Writer writer : playedGame.getWriters()) {
             if (now - writer.getLastSeenAt() > timeoutMillis) {
                 gameCleanupService.deleteGameAndFlush(playedGame); //we need to outsource this because of transactional that would rollback the whole thing after the exception
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game ended because a writer disconnected");
@@ -82,7 +82,7 @@ public class GameService {
             else{
                 gameRepository.save(playedGame);
             }
-        }
+        }*/
         if (playedGame.getWriters().size()!=2 || playedGame.getJudges().size()!=1 ){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"); //Check 400
         }
