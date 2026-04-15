@@ -81,27 +81,30 @@ public class DTOMapperTest {
 
     @Test
     public void testGetWriter_fromWriter_toWriterGetDTO_success() {
-        // create User for the Writer
+        // 1. Create User for the Writer
         User user = new User();
         user.setId(10L);
         user.setUsername("writerUser");
 
-        // create Writer (Composition)
+        // 2. Create Writer and set ALL fields including the Quote
         Writer writer = new Writer(user);
         writer.setGenre("Sci-Fi");
         writer.setTurn(true);
         writer.setText("Once upon a time...");
+        writer.setQuote("The pen is mightier than the sword."); // <--- SET THIS
 
-        // MAP -> Create WriterGetDTO
+        // 3. MAP
         WriterGetDTO writerGetDTO = DTOMapper.INSTANCE.convertEntityToWriterGetDTO(writer);
 
-        // check flattened content (User fields)
+        // 4. CHECK content
         assertEquals(user.getId(), writerGetDTO.getId());
         assertEquals(user.getUsername(), writerGetDTO.getUsername());
-        // check writer specific fields
         assertEquals(writer.getGenre(), writerGetDTO.getGenre());
         assertEquals(writer.getTurn(), writerGetDTO.getTurn());
         assertEquals(writer.getText(), writerGetDTO.getText());
+
+        // 5. This call triggers the getter and fixes SonarCloud
+        assertEquals(writer.getQuote(), writerGetDTO.getQuote());
     }
 
     @Test
@@ -178,15 +181,21 @@ public class DTOMapperTest {
     }
 
     @Test
-    public void testRoomGetDTO_playerCount_nullUsers_returnsZero() {
-        // create the DTO directly to test the logic in the getter
-        RoomGetDTO roomGetDTO = new RoomGetDTO();
+    public void testGetRoom_nullLists_returnsZeroPlayerCount() {
+        // 1. Create a Room and explicitly break the initialization to test null-safety
+        Room room = new Room();
+        room.setId(2L);
+        room.setName("EmptyRoom");
+        room.setUsers(null);
+        room.setWriters(null);
+        room.setJudges(null);
 
-        // Ensure users is null (it is by default, but let's be explicit)
-        roomGetDTO.setUsers(null);
+        // 2. MAP -> MapStruct will map null source lists to null target lists
+        RoomGetDTO roomGetDTO = DTOMapper.INSTANCE.convertEntityToRoomGetDTO(room);
 
-        // This triggers the (users != null) ? users.size() : 0; logic
-        // specifically the ": 0" part.
+        // 3. CHECK
+        // This triggers the "else" branch ( : 0 ) in RoomGetDTO.getPlayerCount()
+        assertNotNull(roomGetDTO);
         assertEquals(0, roomGetDTO.getPlayerCount());
     }
 }
