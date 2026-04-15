@@ -7,7 +7,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -346,5 +345,117 @@ public class RoomServiceTest {
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         assertTrue(exception.getReason().contains("was not found"));
+    }
+
+    // --- Target: joinRoom (isFull || alreadyIn) ---
+    @Test
+    public void joinRoom_alreadyIn_400BadRequest() {
+        testRoom.getUsers().add(testUser); // User is already in
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.joinRoom(1L, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("Wrong state"));
+    }
+
+    // --- Target: swapRole (Already in as Writer/Judge) ---
+    @Test
+    public void swapRole_currentlyWriter_swapToUser_success() {
+        testRoom.getWriters().add(new Writer(testUser)); // User is a Writer
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        Room updatedRoom = roomService.swapRole(1L, "USER", "Bearer valid-token");
+
+        assertEquals(1, updatedRoom.getUsers().size());
+        assertEquals(0, updatedRoom.getWriters().size());
+    }
+
+    @Test
+    public void swapRole_toJudge_success() {
+        testRoom.getUsers().add(testUser);
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        Room updatedRoom = roomService.swapRole(1L, "JUDGE", "Bearer valid-token");
+
+        assertEquals(1, updatedRoom.getJudges().size());
+        assertEquals("testUser", updatedRoom.getJudges().get(0).getUser().getUsername());
+    }
+
+    // --- Target: promoteToLeader (Promote Writer & Judge branches) ---
+    @Test
+    public void leaveRoom_promoteWriter_success() {
+        User writerUser = new User();
+        writerUser.setId(2L);
+        testRoom.getWriters().add(new Writer(writerUser)); // No users, only 1 writer
+        testRoom.setLobbyLeader(testUser);
+        testRoom.getUsers().add(testUser); // Leader is about to leave
+
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        roomService.leaveRoom(1L, "Bearer valid-token");
+
+        assertEquals(writerUser.getId(), testRoom.getLobbyLeader().getId());
+    }
+
+    @Test
+    public void leaveRoom_promoteJudge_success() {
+        User judgeUser = new User();
+        judgeUser.setId(3L);
+        testRoom.getJudges().add(new Judge(judgeUser)); // No users, no writers, only 1 judge
+        testRoom.setLobbyLeader(testUser);
+        testRoom.getUsers().add(testUser);
+
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        roomService.leaveRoom(1L, "Bearer valid-token");
+
+        assertEquals(judgeUser.getId(), testRoom.getLobbyLeader().getId());
+    }
+
+    // --- Target: leaveRoom (InWriters and InJudges booleans) ---
+    @Test
+    public void leaveRoom_writerLeaves_success() {
+        // 1. Setup: Add a separate Leader so the room isn't empty when the writer leaves
+        User leader = new User();
+        leader.setId(99L);
+        testRoom.setLobbyLeader(leader);
+        testRoom.getUsers().add(leader); // Room now has 1 User (Leader)
+
+        // 2. Add the Writer (the one who will leave)
+        testRoom.getWriters().add(new Writer(testUser));
+
+        // Update player count to reflect 2 people
+        testRoom.setPlayerCount(2);
+
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        // 3. Act
+        roomService.leaveRoom(1L, "Bearer valid-token");
+
+        // 4. Assert & Verify
+        assertEquals(0, testRoom.getWriters().size());
+        assertEquals(1, testRoom.getPlayerCount()); // Leader is still there
+
+        // Now save() will be called because playerCount is 1, not 0!
+        verify(roomRepository, times(1)).save(testRoom);
+        verify(roomRepository, never()).delete(any());
+    }
+
+    // --- Target: startGame (Missing Judge branch) ---
+    @Test
+    public void startGame_missingJudge_400BadRequest() {
+        testRoom.setLobbyLeader(testUser);
+        testRoom.getWriters().add(new Writer(new User()));
+        testRoom.getWriters().add(new Writer(new User()));
+        // Missing judge!
+
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.startGame(1L, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 }
