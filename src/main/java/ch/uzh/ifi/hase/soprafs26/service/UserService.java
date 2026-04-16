@@ -3,6 +3,8 @@ package ch.uzh.ifi.hase.soprafs26.service;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserDeleteDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPasswordPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPutDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,8 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,9 +36,13 @@ public class UserService {
 	private final Logger log = LoggerFactory.getLogger(UserService.class);
 
 	private final UserRepository userRepository;
+    private final StoryRepository storyRepository;
 
-	public UserService(@Qualifier("userRepository") UserRepository userRepository) {
+	public UserService(@Qualifier("userRepository") UserRepository userRepository, StoryRepository storyRepository) {
 		this.userRepository = userRepository;
+        this.storyRepository = storyRepository;
+
+
 	}
 
 	public List<User> getUsers(String bearerToken) {
@@ -230,5 +239,22 @@ public class UserService {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, String.format(baseErrorMessage));
 		}
 	}
+
+    public List<StoryGetDTO> findAllStories(){
+        List<Story> results = storyRepository.findAll();
+        List<StoryGetDTO> getResults = new ArrayList<>();
+        for (Story story:results) {
+            StoryGetDTO getStory = DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
+            getResults.add(getStory);
+
+        }
+        return getResults;
+    }
+
+    public StoryGetDTO findStoryById(Long storyId) {
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
+        return DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
+    }
 
 }
