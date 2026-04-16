@@ -251,4 +251,10 @@ public class UserService {
         return getResults;
     }
 
+    public StoryGetDTO findStoryById(Long storyId) {
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
+        return DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
+    }
+
 }
