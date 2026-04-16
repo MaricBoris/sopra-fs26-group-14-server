@@ -121,7 +121,7 @@ public class UserController {
     @GetMapping("/results")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public List<StoryGetDTO> deleteUser(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
+    public List<StoryGetDTO> getAllStories(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
         String token = bearerToken;
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);

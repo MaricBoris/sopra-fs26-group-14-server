@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
@@ -315,7 +316,7 @@ public class UserServiceTest {
         assertThrows(ResponseStatusException.class, () -> userService.deleteUser(1L, dto, "Bearer token"));
     }
 
-    // --- STORY MANAGEMENT (findAllStories) ---
+    // --- STORY MANAGEMENT (findAllStories & findStoryById) ---
 
     @Test
     public void findAllStories_success() {
@@ -327,6 +328,23 @@ public class UserServiceTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
+    }
+
+    @Test
+    public void findStoryById_success() {
+        Story story = new Story();
+        story.setId(1L);
+        Mockito.when(storyRepository.findById(1L)).thenReturn(Optional.of(story));
+
+        StoryGetDTO result = userService.findStoryById(1L);
+
+        assertNotNull(result);
+    }
+
+    @Test
+    public void findStoryById_notFound_404NotFound() {
+        Mockito.when(storyRepository.findById(anyLong())).thenReturn(Optional.empty());
+        assertThrows(ResponseStatusException.class, () -> userService.findStoryById(99L));
     }
 
     // --- INTERNAL HELPERS (extractToken & checkMatch) ---

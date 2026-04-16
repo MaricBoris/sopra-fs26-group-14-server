@@ -248,7 +248,7 @@ public class UserControllerTest {
                 .andExpect(status().isNoContent());
     }
 
-    // --- STORY RESULTS (GET /results) ---
+    // --- STORY RESULTS (GET /results & /results/story/{id}) ---
 
     @Test
     public void getResults_validBearerToken_200Ok() throws Exception {
@@ -274,6 +274,39 @@ public class UserControllerTest {
 
         mockMvc.perform(get("/results"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    public void getStoryById_validInput_200Ok() throws Exception {
+        StoryGetDTO story = new StoryGetDTO();
+        story.setStoryText("Once upon a time...");
+
+        given(userService.findStoryById(anyLong())).willReturn(story);
+
+        mockMvc.perform(get("/results/story/1")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.storyText", is("Once upon a time...")));
+    }
+
+    @Test
+    public void getStoryById_nonBearerToken_200Ok() throws Exception {
+        StoryGetDTO story = new StoryGetDTO();
+        given(userService.findStoryById(anyLong())).willReturn(story);
+
+        mockMvc.perform(get("/results/story/1")
+                        .header("Authorization", "token-without-prefix"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void getStoryById_invalidId_404NotFound() throws Exception {
+        given(userService.findStoryById(anyLong()))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        mockMvc.perform(get("/results/story/99")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isNotFound());
     }
 
     private String asJsonString(final Object object) {
