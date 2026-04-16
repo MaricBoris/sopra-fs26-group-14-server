@@ -77,61 +77,49 @@ public class GameController {
     @ResponseBody
     public GameGetDTO voteGame(@PathVariable Long gameId,
                                 @RequestHeader(value = "Authorization") String bearerToken, @RequestBody Long writerId) throws InterruptedException {
-        System.out.println("=== VOTE ENDPOINT HIT ===");
-        System.out.println("gameId: " + gameId);
-        System.out.println("bearerToken: " + bearerToken);
-        System.out.println("writerId: " + writerId);
 
 
         Game currentGame = gameService.getGame(gameId);
-        System.out.println("1. Got game, phase: " + currentGame.getPhase() + ", timer: " + currentGame.getTimer());
+        Writer voted = new Writer();
 
         String token = bearerToken;
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
-
-        Writer voted = gameService.findWriterFromId(writerId, currentGame);
-        System.out.println("2. Found voted writer, id: " + voted.getId());
+        if (writerId < 0){
+        }
+        else{
+            voted = gameService.findWriterFromId(writerId, currentGame);
+        }
 
         User userJudge = gameService.findUserFromToken(token);
-        System.out.println("3. Found judge, id: " + userJudge.getId());
 
         Judge judge = gameService.getJudgeFromUser(userJudge, currentGame);
-        System.out.println("4. Got judge entity");
 
         gameService.checkGameIsOver(currentGame);
-        System.out.println("5. Game over check passed");
 
         gameService.addVote(currentGame, voted, judge);
-        System.out.println("6. Vote added, entering wait loop");
 
         long waited = 0L;
         while (!gameService.allJudgesVoted(currentGame) && waited < 70) {
             Thread.sleep(1000);
             waited++;
         }
-        System.out.println("7. Wait loop done, waited " + waited + "s");
 
         if(currentGame.getStory().getWinner() != null){
-            System.out.println("8a. Winner already set, returning");
+
             return DTOMapper.INSTANCE.convertEntityToGameGetDTO(currentGame);
         }
 
         Writer winner = gameService.determineWinner(currentGame);
-        System.out.println("8b. Winner determined, id: " + winner.getId());
 
         gameService.updateStory(winner, currentGame);
-        System.out.println("9. Story updated");
 
         gameService.updateHistory(currentGame);
-        System.out.println("10. History updated");
 
         gameService.clearVotes(currentGame);
-        System.out.println("11. Votes cleared");
 
         gameService.cleanupGame(currentGame);
-        System.out.println("12. Game cleaned up, returning");
 
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(currentGame);
     }
