@@ -84,6 +84,9 @@ public class UserController {
             token = token.substring(7);
         }
 
+        //User foundUserToken = userService.findUserFromToken(token);
+        //userService.checkUsersMatch(foundUserId, foundUserToken); this check makes it impossible to visit other profiles
+
         userService.findUserFromToken(token); //ensures only authenticated users can fetch
 
         return DTOMapper.INSTANCE.convertEntityToUserGetDTO(foundUserId);
@@ -127,6 +130,19 @@ public class UserController {
         List<StoryGetDTO> results = userService.findAllStories();
         return results;
     }
-    
+
+    @GetMapping("/results/story/{storyId}")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public StoryGetDTO getStoryById(@PathVariable Long storyId,
+                                    @RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken;
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        userService.findUserFromToken(token);
+        return userService.findStoryById(storyId);
+    }
+
 
 }
