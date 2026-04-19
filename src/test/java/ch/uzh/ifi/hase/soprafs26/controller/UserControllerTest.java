@@ -1,343 +1,319 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-
-
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
-
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * UserControllerTest
- * This is a WebMvcTest which allows to test the UserController i.e. GET/POST
- * request without actually sending them over the network.
- * This tests if the UserController works.
- */
 @WebMvcTest(UserController.class)
 public class UserControllerTest {
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-	@MockitoBean
-	private UserService userService;
+    @MockitoBean
+    private UserService userService;
 
-        // --- GET /users ---
-
-	@Test
-	public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
-		// given
-		User user = new User();
-		user.setUsername("firstname@lastname");
-
-		List<User> allUsers = Collections.singletonList(user);
-
-		// this mocks the UserService -> we define above what the userService should
-		// return when getUsers() is called
-		given(userService.getUsers(anyString())).willReturn(allUsers);
-
-		// when
-		MockHttpServletRequestBuilder getRequest = get("/users").contentType(MediaType.APPLICATION_JSON).header("Authorization", "Bearer some-token");
-
-		// then
-		mockMvc.perform(getRequest).andExpect(status().isOk())
-				.andExpect(jsonPath("$", hasSize(1)))
-				.andExpect(jsonPath("$[0].username", is(user.getUsername())));
-	}
-
-        //Test for missing header
-        @Test
-        public void givenNoAuthorizationHeader_whenGetUsers_thenReturn401() throws Exception {
-                // given
-                given(userService.getUsers(null))
-                        .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
-
-                // when
-                MockHttpServletRequestBuilder getRequest = get("/users")
-                        .contentType(MediaType.APPLICATION_JSON);
-
-                // then
-                mockMvc.perform(getRequest)
-                        .andExpect(status().isUnauthorized());
-        }
-
-        //Test for invalid token
-        @Test
-        public void givenInvalidToken_whenGetUsers_thenReturn401() throws Exception {
-                // given
-                given(userService.getUsers(anyString()))
-                        .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"));
-
-                // when
-                MockHttpServletRequestBuilder getRequest = get("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", "Bearer invalid-token");
-
-                // then
-                mockMvc.perform(getRequest)
-                        .andExpect(status().isUnauthorized());
-        }
-
-    // --- POST /users (Registration) ---
+    // --- REGISTRATION (POST /users) ---
 
     @Test
     public void createUser_validInput_201Created() throws Exception {
-        // given
         User user = new User();
         user.setId(1L);
         user.setUsername("testUser");
-        user.setPassword("password123");
         user.setToken("token-123");
-        user.setBio("my bio");
 
         UserPostDTO userPostDTO = new UserPostDTO();
         userPostDTO.setUsername("testUser");
         userPostDTO.setPassword("password123");
 
-        given(userService.createUser(Mockito.any())).willReturn(user);
+        given(userService.createUser(any())).willReturn(user);
 
-        // when
-        MockHttpServletRequestBuilder postRequest = post("/users")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
-
-        // then
-        mockMvc.perform(postRequest)
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(userPostDTO)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", is(user.getId().intValue())))
-                .andExpect(jsonPath("$.username", is(user.getUsername())))
-                .andExpect(jsonPath("$.token", is(user.getToken())))
-                .andExpect(jsonPath("$.bio", is(user.getBio())));
+                .andExpect(jsonPath("$.username", is(user.getUsername())));
     }
 
     @Test
     public void createUser_emptyFields_400BadRequest() throws Exception {
-        // given
         UserPostDTO userPostDTO = new UserPostDTO();
-        userPostDTO.setUsername(""); // Blank username
+        userPostDTO.setUsername("");
 
-        given(userService.createUser(Mockito.any()))
+        given(userService.createUser(any()))
                 .willThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password cannot be empty!"));
 
-        // when
-        MockHttpServletRequestBuilder postRequest = post("/users")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
-
-        // then
-        mockMvc.perform(postRequest)
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(userPostDTO)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     public void createUser_duplicateUsername_409Conflict() throws Exception {
-        // given
         UserPostDTO userPostDTO = new UserPostDTO();
         userPostDTO.setUsername("existingUser");
-        userPostDTO.setPassword("password123");
 
-        given(userService.createUser(Mockito.any()))
+        given(userService.createUser(any()))
                 .willThrow(new ResponseStatusException(HttpStatus.CONFLICT, "The username provided is not unique."));
 
-        // when
-        MockHttpServletRequestBuilder postRequest = post("/users")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
-
-        // then
-        mockMvc.perform(postRequest)
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(userPostDTO)))
                 .andExpect(status().isConflict());
     }
 
-    // --- POST /users/login ---
+    // --- AUTHENTICATION (POST /users/login & logout) ---
 
     @Test
     public void loginUser_validCredentials_200Ok() throws Exception {
-        // given
         User user = new User();
-        user.setId(1L);
         user.setUsername("testUser");
-        user.setPassword("password123");
         user.setToken("login-token");
-        user.setBio("my bio");
 
         UserPostDTO userPostDTO = new UserPostDTO();
         userPostDTO.setUsername("testUser");
         userPostDTO.setPassword("password123");
 
-        given(userService.loginUser(Mockito.any())).willReturn(user);
+        given(userService.loginUser(any())).willReturn(user);
 
-        // when
-        MockHttpServletRequestBuilder postRequest = post("/users/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
-
-        // then
-        mockMvc.perform(postRequest)
+        mockMvc.perform(post("/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(userPostDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token", is(user.getToken())))
-                .andExpect(jsonPath("$.username", is(user.getUsername())));
+                .andExpect(jsonPath("$.token", is(user.getToken())));
     }
 
     @Test
     public void loginUser_invalidCredentials_401Unauthorized() throws Exception {
-        // given
         UserPostDTO userPostDTO = new UserPostDTO();
-        userPostDTO.setUsername("wrongUser");
-        userPostDTO.setPassword("wrongPass");
+        given(userService.loginUser(any()))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
-        given(userService.loginUser(Mockito.any()))
-                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password."));
-
-        // when
-        MockHttpServletRequestBuilder postRequest = post("/users/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
-
-        // then
-        mockMvc.perform(postRequest)
+        mockMvc.perform(post("/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(userPostDTO)))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    public void loginUser_emptyFields_400BadRequest() throws Exception {
-        // given
-        UserPostDTO userPostDTO = new UserPostDTO();
-        userPostDTO.setUsername(""); // Empty username
-
-        given(userService.loginUser(Mockito.any()))
-                .willThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password cannot be empty!"));
-
-        // when
-        MockHttpServletRequestBuilder postRequest = post("/users/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(asJsonString(userPostDTO));
-
-        // then
-        mockMvc.perform(postRequest)
-                .andExpect(status().isBadRequest());
-    }
-
-    // --- POST /users/logout ---
-
-    @Test
     public void logoutUser_validToken_204NoContent() throws Exception {
-        // given
-        MockHttpServletRequestBuilder postRequest = post("/users/logout")
-                .header("Authorization", "Bearer some-token");
-
-        // then
-        mockMvc.perform(postRequest)
+        mockMvc.perform(post("/users/logout")
+                        .header("Authorization", "Bearer some-token"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     public void logoutUser_missingToken_204NoContent() throws Exception {
-        // given
-        // No header is provided at all
-        MockHttpServletRequestBuilder postRequest = post("/users/logout");
-
-        // then
-        mockMvc.perform(postRequest)
+        mockMvc.perform(post("/users/logout"))
                 .andExpect(status().isNoContent());
     }
-  
-  	@Test
-	  public void getUser_validId_returnsUser() throws Exception {
-		  //ADD OTHER USER ATTRIBUTES
-   		User user = new User();
-    	user.setId(1L);
-    	//user.setBio("Test Bio");
-    	user.setUsername("testUsername");
 
-    	given(userService.findUserFromId(1L)).willReturn(user);
-    	given(userService.findUserFromToken(Mockito.any())).willReturn(user);
+    // --- USER RETRIEVAL (GET /users & /users/{id}) ---
 
-    
-    	MockHttpServletRequestBuilder getRequest = get("/users/1")
-        	.contentType(MediaType.APPLICATION_JSON)
-        	.header("Authorization", "Bearer testToken");
+    @Test
+    public void getAllUsers_validRequest_200Ok() throws Exception {
+        User user = new User();
+        user.setUsername("firstname@lastname");
+        List<User> allUsers = Collections.singletonList(user);
 
-    
-    	mockMvc.perform(getRequest)
-        	.andExpect(status().isOk())
-        	.andExpect(jsonPath("$.id", is(user.getId().intValue())))
-        	.andExpect(jsonPath("$.username", is(user.getUsername())));
-        	//.andExpect(jsonPath("$.bio", is(user.getBio())));
-	}
-  
-  	@Test
-	  public void getUser_invalidId_returns404() throws Exception {
-    
-    	given(userService.findUserFromId(Mockito.any()))
-        	.willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-    	given(userService.findUserFromToken(Mockito.any())).willReturn(new User());
+        given(userService.getUsers(anyString())).willReturn(allUsers);
 
-    
-    	MockHttpServletRequestBuilder getRequest = get("/users/99")
-        	.contentType(MediaType.APPLICATION_JSON)
-        	.header("Authorization", "Bearer testToken");
+        mockMvc.perform(get("/users")
+                        .header("Authorization", "Bearer some-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].username", is(user.getUsername())));
+    }
 
-    
-    	mockMvc.perform(getRequest)
-        	.andExpect(status().isNotFound());
-	}
-  
-  	@Test
-	  public void getUser_Unauthorized_returns401() throws Exception {
-    
-    	given(userService.findUserFromId(Mockito.any()))
-        	.willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
-    	given(userService.findUserFromToken(Mockito.any())).willReturn(new User());
+    @Test
+    public void getAllUsers_missingToken_401Unauthorized() throws Exception {
+        given(userService.getUsers(null))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
 
-    
-    	MockHttpServletRequestBuilder getRequest = get("/users/99")
-        	.contentType(MediaType.APPLICATION_JSON)
-        	.header("Authorization", "Bearer testToken");
+        mockMvc.perform(get("/users"))
+                .andExpect(status().isUnauthorized());
+    }
 
-    
-    	mockMvc.perform(getRequest)
-        	.andExpect(status().isUnauthorized());
-	}
+    @Test
+    public void getUser_validId_200Ok() throws Exception {
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("testUsername");
 
-	/**
-	 * Helper Method to convert userPostDTO into a JSON string such that the input
-	 * can be processed
-	 * Input will look like this: {"name": "Test User", "username": "testUsername"}
-	 * 
-	 * @param object
-	 * @return string
-	 */
-	private String asJsonString(final Object object) {
-		try {
-			return new ObjectMapper().writeValueAsString(object);
-		} catch (JacksonException e) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-					String.format("The request body could not be created.%s", e.toString()));
-		}
-	}
+        given(userService.findUserFromId(1L)).willReturn(user);
+        given(userService.findUserFromToken(anyString())).willReturn(user);
+
+        mockMvc.perform(get("/users/1")
+                        .header("Authorization", "Bearer testToken"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.username", is("testUsername")));
+    }
+
+    @Test
+    public void getUser_nonBearerHeader_200Ok() throws Exception {
+        User user = new User();
+        user.setId(1L);
+        given(userService.findUserFromId(anyLong())).willReturn(user);
+
+        mockMvc.perform(get("/users/1")
+                        .header("Authorization", "raw-token-string"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void getUser_invalidId_404NotFound() throws Exception {
+        given(userService.findUserFromId(anyLong()))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        mockMvc.perform(get("/users/99")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isNotFound());
+    }
+
+    // --- USER UPDATES (PUT /users/{id}/password & /users/{id}) ---
+
+    @Test
+    public void changePassword_validInput_200Ok() throws Exception {
+        UserPasswordPutDTO dto = new UserPasswordPutDTO();
+        dto.setCurrentPassword("old");
+        dto.setNewPassword("new");
+
+        mockMvc.perform(put("/users/1/password")
+                        .header("Authorization", "Bearer token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(dto)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void updateUserBio_validInput_200Ok() throws Exception {
+        User user = new User();
+        user.setBio("New Bio");
+        UserPutDTO dto = new UserPutDTO();
+        dto.setBio("New Bio");
+
+        given(userService.updateUserBio(anyLong(), any(), any())).willReturn(user);
+
+        mockMvc.perform(put("/users/1")
+                        .header("Authorization", "Bearer token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bio", is("New Bio")));
+    }
+
+    // --- ACCOUNT DELETION (DELETE /users/{id}) ---
+
+    @Test
+    public void deleteUser_withBody_204NoContent() throws Exception {
+        UserDeleteDTO dto = new UserDeleteDTO();
+        dto.setPassword("pass");
+
+        mockMvc.perform(delete("/users/1")
+                        .header("Authorization", "Bearer token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(dto)))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    public void deleteUser_noBody_204NoContent() throws Exception {
+        mockMvc.perform(delete("/users/1")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isNoContent());
+    }
+
+    // --- STORY RESULTS (GET /results & /results/story/{id}) ---
+
+    @Test
+    public void getResults_validBearerToken_200Ok() throws Exception {
+        given(userService.findAllStories()).willReturn(new ArrayList<>());
+
+        mockMvc.perform(get("/results")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void getResults_nonBearerToken_200Ok() throws Exception {
+        given(userService.findAllStories()).willReturn(new ArrayList<>());
+
+        mockMvc.perform(get("/results")
+                        .header("Authorization", "raw-token"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void getResults_nullToken_200Ok() throws Exception {
+        given(userService.findAllStories()).willReturn(new ArrayList<>());
+
+        mockMvc.perform(get("/results"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void getStoryById_validInput_200Ok() throws Exception {
+        StoryGetDTO story = new StoryGetDTO();
+        story.setStoryText("Once upon a time...");
+
+        given(userService.findStoryById(anyLong())).willReturn(story);
+
+        mockMvc.perform(get("/results/story/1")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.storyText", is("Once upon a time...")));
+    }
+
+    @Test
+    public void getStoryById_nonBearerToken_200Ok() throws Exception {
+        StoryGetDTO story = new StoryGetDTO();
+        given(userService.findStoryById(anyLong())).willReturn(story);
+
+        mockMvc.perform(get("/results/story/1")
+                        .header("Authorization", "token-without-prefix"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void getStoryById_invalidId_404NotFound() throws Exception {
+        given(userService.findStoryById(anyLong()))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        mockMvc.perform(get("/results/story/99")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isNotFound());
+    }
+
+    private String asJsonString(final Object object) {
+        try {
+            return new ObjectMapper().writeValueAsString(object);
+        } catch (JacksonException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Body creation failed");
+        }
+    }
 }

@@ -2,7 +2,6 @@ package ch.uzh.ifi.hase.soprafs26.entity;
 
 import java.util.Date;
 import java.io.Serializable;
-import ch.uzh.ifi.hase.soprafs26.entity.User;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,6 +55,7 @@ public class Story implements Serializable {
 
 
     public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public User getWinner() { return winner; }
     public User getLoser() { return loser; }
     public String getStoryText() { return storyText; }
