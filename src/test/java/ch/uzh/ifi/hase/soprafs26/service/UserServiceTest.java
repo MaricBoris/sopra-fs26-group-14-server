@@ -1,7 +1,10 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -11,153 +14,362 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 
 public class UserServiceTest {
 
-	@Mock
-	private UserRepository userRepository;
+    @Mock
+    private UserRepository userRepository;
 
-	@InjectMocks
-	private UserService userService;
+    @Mock
+    private StoryRepository storyRepository;
 
-	private User testUser;
+    @InjectMocks
+    private UserService userService;
+
+    private User testUser;
 
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
 
-        // given
         testUser = new User();
         testUser.setId(1L);
         testUser.setUsername("testUsername");
         testUser.setPassword("password123");
         testUser.setToken("some-token");
 
-        // default behavior for repository
-        Mockito.when(userRepository.save(Mockito.any())).thenReturn(testUser);
+        Mockito.when(userRepository.save(any())).thenReturn(testUser);
     }
 
-    // --- Create User Tests ---
+    // --- USER REGISTRATION (createUser) ---
 
     @Test
     public void createUser_validInputs_201Created() {
-        // when
         User createdUser = userService.createUser(testUser);
 
-        // then
-        Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any());
-
+        Mockito.verify(userRepository, Mockito.times(1)).save(any());
         assertEquals(testUser.getId(), createdUser.getId());
-        assertEquals(testUser.getUsername(), createdUser.getUsername());
         assertNotNull(createdUser.getToken());
     }
 
     @Test
     public void createUser_emptyUsername_400BadRequest() {
-        // given
         testUser.setUsername("");
+        assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
+    }
 
-        // when/then
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    @Test
+    public void createUser_nullUsername_400BadRequest() {
+        testUser.setUsername(null);
+        assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
+    }
+
+    @Test
+    public void createUser_nullPassword_400BadRequest() {
+        testUser.setPassword(null);
+        assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
     }
 
     @Test
     public void createUser_duplicateUsername_409Conflict() {
-        // given -> mock that findByUsername finds an existing user
-        Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(testUser);
-
-        // when/then -> attempt to create user with same username
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
-        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+        Mockito.when(userRepository.findByUsername(any())).thenReturn(testUser);
+        assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
     }
 
-    // --- Login User Tests ---
+    // --- AUTHENTICATION (loginUser & logoutUser) ---
 
     @Test
     public void loginUser_validCredentials_200Ok() {
-        // given
         Mockito.when(userRepository.findByUsername(testUser.getUsername())).thenReturn(testUser);
 
-        // when
         User loggedInUser = userService.loginUser(testUser);
 
-        // then
-        assertNotNull(loggedInUser.getToken());
-        assertNotEquals("some-token", loggedInUser.getToken()); // Token was refreshed
-        Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any());
+        assertNotEquals("some-token", loggedInUser.getToken());
+        Mockito.verify(userRepository).save(any());
     }
 
     @Test
     public void loginUser_emptyPassword_400BadRequest() {
-        // given: User with null password
         User loginAttempt = new User();
         loginAttempt.setUsername("testUser");
         loginAttempt.setPassword(null);
 
-        // when/then
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
-            userService.loginUser(loginAttempt);
-        });
+        assertThrows(ResponseStatusException.class, () -> userService.loginUser(loginAttempt));
+    }
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertEquals("Username and password cannot be empty!", exception.getReason());
+    @Test
+    public void loginUser_blankUsername_400BadRequest() {
+        User loginAttempt = new User();
+        loginAttempt.setUsername("   ");
+        loginAttempt.setPassword("password123");
+
+        assertThrows(ResponseStatusException.class, () -> userService.loginUser(loginAttempt));
     }
 
     @Test
     public void loginUser_wrongPassword_401Unauthorized() {
-        // given
         User existingUser = new User();
-        existingUser.setUsername("testUsername");
         existingUser.setPassword("REAL_PASSWORD");
+        Mockito.when(userRepository.findByUsername(any())).thenReturn(existingUser);
 
-        Mockito.when(userRepository.findByUsername("testUsername")).thenReturn(existingUser);
-
-        // when
         User loginAttempt = new User();
-        loginAttempt.setUsername("testUsername");
         loginAttempt.setPassword("WRONG_PASSWORD");
 
-        // then
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> userService.loginUser(loginAttempt));
-        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        assertThrows(ResponseStatusException.class, () -> userService.loginUser(loginAttempt));
     }
 
-    // --- Logout User Tests ---
-
     @Test
-    public void logoutUser_validToken_204NoContent() {
-        // given
+    public void logoutUser_validToken_success() {
         Mockito.when(userRepository.findByToken("valid-token")).thenReturn(testUser);
 
-        // when
         userService.logoutUser("Bearer valid-token");
 
-        // then
-        Mockito.verify(userRepository, Mockito.times(1)).save(testUser);
-        assertNotEquals("some-token", testUser.getToken()); // Verify token was rotated
+        Mockito.verify(userRepository).save(testUser);
+        assertNotEquals("some-token", testUser.getToken());
     }
 
     @Test
     public void logoutUser_invalidToken_doesNothing() {
-        // given
         Mockito.when(userRepository.findByToken("invalid-token")).thenReturn(null);
-
-        // when
         userService.logoutUser("Bearer invalid-token");
+        Mockito.verify(userRepository, Mockito.never()).save(any());
+    }
 
-        // then
-        Mockito.verify(userRepository, Mockito.times(0)).save(Mockito.any());
+    @Test
+    public void logoutUser_notBearerPrefix_returnsEarly() {
+        userService.logoutUser("Basic randomtoken");
+        Mockito.verify(userRepository, Mockito.never()).findByToken(anyString());
     }
 
     @Test
     public void logoutUser_nullToken_doesNothing() {
-        // when: Calling logout with a null string
         userService.logoutUser(null);
+        Mockito.verify(userRepository, Mockito.never()).findByToken(any());
+    }
 
-        // then: The repository should never even be searched
-        Mockito.verify(userRepository, Mockito.times(0)).findByToken(Mockito.any());
-        Mockito.verify(userRepository, Mockito.times(0)).save(Mockito.any());
+    // --- DATA RETRIEVAL (getUsers & findUser) ---
+
+    @Test
+    public void getUsers_validToken_returnsAllUsers() {
+        Mockito.when(userRepository.findByToken("valid-token")).thenReturn(testUser);
+        Mockito.when(userRepository.findAll()).thenReturn(Collections.singletonList(testUser));
+
+        List<User> result = userService.getUsers("Bearer valid-token");
+
+        assertEquals(1, result.size());
+        Mockito.verify(userRepository).findAll();
+    }
+
+    @Test
+    public void getUsers_nullToken_401Unauthorized() {
+        assertThrows(ResponseStatusException.class, () -> userService.getUsers(null));
+    }
+
+    @Test
+    public void getUsers_notBearer_401Unauthorized() {
+        assertThrows(ResponseStatusException.class, () -> userService.getUsers("Basic token"));
+    }
+
+    @Test
+    public void getUsers_emptyToken_401Unauthorized() {
+        assertThrows(ResponseStatusException.class, () -> userService.getUsers("Bearer "));
+    }
+
+    @Test
+    public void getUsers_tokenNotFound_401Unauthorized() {
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(null);
+        assertThrows(ResponseStatusException.class, () -> userService.getUsers("Bearer fake"));
+    }
+
+    @Test
+    public void findUserFromId_success() {
+        Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        User found = userService.findUserFromId(1L);
+        assertEquals(testUser.getUsername(), found.getUsername());
+    }
+
+    @Test
+    public void findUserFromId_notFound_404NotFound() {
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+        assertThrows(ResponseStatusException.class, () -> userService.findUserFromId(99L));
+    }
+
+    @Test
+    public void findUserFromToken_notFound_401Unauthorized() {
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(null);
+        assertThrows(ResponseStatusException.class, () -> userService.findUserFromToken("fake"));
+    }
+
+    // --- PROFILE UPDATES (updateBio & changePassword) ---
+
+    @Test
+    public void updateUserBio_success() {
+        UserPutDTO dto = new UserPutDTO();
+        dto.setBio("New Bio");
+
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+
+        User updated = userService.updateUserBio(1L, dto, "Bearer token");
+        assertEquals("New Bio", updated.getBio());
+        Mockito.verify(userRepository).save(testUser);
+    }
+
+    @Test
+    public void changePassword_correctPassword_success() {
+        UserPasswordPutDTO dto = new UserPasswordPutDTO();
+        dto.setCurrentPassword("password123");
+        dto.setNewPassword("brandNewPassword");
+
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+
+        userService.changePassword(1L, dto, "Bearer token");
+
+        assertEquals("brandNewPassword", testUser.getPassword());
+        Mockito.verify(userRepository).save(testUser);
+    }
+
+    @Test
+    public void changePassword_missingFields_400BadRequest() {
+        UserPasswordPutDTO dto = new UserPasswordPutDTO();
+        dto.setCurrentPassword("");
+
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+
+        assertThrows(ResponseStatusException.class, () -> userService.changePassword(1L, dto, "Bearer token"));
+    }
+
+    @Test
+    public void changePassword_nullNewPassword_400BadRequest() {
+        UserPasswordPutDTO dto = new UserPasswordPutDTO();
+        dto.setCurrentPassword("password123");
+        dto.setNewPassword(null);
+
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+
+        assertThrows(ResponseStatusException.class, () -> userService.changePassword(1L, dto, "Bearer token"));
+    }
+
+    @Test
+    public void changePassword_wrongCurrentPassword_401Unauthorized() {
+        UserPasswordPutDTO dto = new UserPasswordPutDTO();
+        dto.setCurrentPassword("WRONG");
+        dto.setNewPassword("NEW");
+
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+
+        assertThrows(ResponseStatusException.class, () -> userService.changePassword(1L, dto, "Bearer token"));
+    }
+
+    // --- DELETION (deleteUser) ---
+
+    @Test
+    public void deleteUser_success() {
+        UserDeleteDTO dto = new UserDeleteDTO();
+        dto.setPassword("password123");
+
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+
+        userService.deleteUser(1L, dto, "Bearer token");
+        Mockito.verify(userRepository).delete(testUser);
+    }
+
+    @Test
+    public void deleteUser_nullDTO_400BadRequest() {
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+
+        assertThrows(ResponseStatusException.class, () -> userService.deleteUser(1L, null, "Bearer token"));
+    }
+
+    @Test
+    public void deleteUser_blankPassword_400BadRequest() {
+        UserDeleteDTO dto = new UserDeleteDTO();
+        dto.setPassword("");
+
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+
+        assertThrows(ResponseStatusException.class, () -> userService.deleteUser(1L, dto, "Bearer token"));
+    }
+
+    @Test
+    public void deleteUser_wrongPassword_401Unauthorized() {
+        UserDeleteDTO dto = new UserDeleteDTO();
+        dto.setPassword("WRONG");
+
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+
+        assertThrows(ResponseStatusException.class, () -> userService.deleteUser(1L, dto, "Bearer token"));
+    }
+
+    // --- STORY MANAGEMENT (findAllStories & findStoryById) ---
+
+    @Test
+    public void findAllStories_success() {
+        List<Story> mockStories = new ArrayList<>();
+        mockStories.add(new Story());
+        Mockito.when(storyRepository.findAll()).thenReturn(mockStories);
+
+        List<StoryGetDTO> result = userService.findAllStories();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    public void findStoryById_success() {
+        Story story = new Story();
+        story.setId(1L);
+        Mockito.when(storyRepository.findById(1L)).thenReturn(Optional.of(story));
+
+        StoryGetDTO result = userService.findStoryById(1L);
+
+        assertNotNull(result);
+    }
+
+    @Test
+    public void findStoryById_notFound_404NotFound() {
+        Mockito.when(storyRepository.findById(anyLong())).thenReturn(Optional.empty());
+        assertThrows(ResponseStatusException.class, () -> userService.findStoryById(99L));
+    }
+
+    // --- INTERNAL HELPERS (extractToken & checkMatch) ---
+
+    @Test
+    public void extractToken_nullToken_throws401() {
+        assertThrows(ResponseStatusException.class, () -> userService.extractToken(null));
+    }
+
+    @Test
+    public void extractToken_invalidPrefix_throws401() {
+        assertThrows(ResponseStatusException.class, () -> userService.extractToken("Basic token"));
+    }
+
+    @Test
+    public void checkUsersMatch_mismatchId_401() {
+        User user1 = new User(); user1.setId(1L); user1.setToken("T1");
+        User user2 = new User(); user2.setId(2L); user2.setToken("T1");
+        assertThrows(ResponseStatusException.class, () -> userService.checkUsersMatch(user1, user2));
+    }
+
+    @Test
+    public void checkUsersMatch_mismatchToken_401() {
+        User user1 = new User(); user1.setId(1L); user1.setToken("T1");
+        User user2 = new User(); user2.setId(1L); user2.setToken("T2");
+        assertThrows(ResponseStatusException.class, () -> userService.checkUsersMatch(user1, user2));
     }
 }

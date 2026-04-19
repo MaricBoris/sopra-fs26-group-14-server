@@ -1,12 +1,11 @@
 package ch.uzh.ifi.hase.soprafs26.entity;
 
+import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
 import jakarta.persistence.*;
-import ch.uzh.ifi.hase.soprafs26.entity.Story;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import ch.uzh.ifi.hase.soprafs26.entity.GamePhase;
 
 @Entity
 @Table(name = "GAME")

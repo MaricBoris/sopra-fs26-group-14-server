@@ -7,7 +7,6 @@ import ch.uzh.ifi.hase.soprafs26.entity.Writer;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
-import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import org.springframework.http.HttpStatus;

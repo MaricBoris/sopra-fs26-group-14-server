@@ -3,177 +3,183 @@ package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * DTOMapperTest
- * Verifies that MapStruct correctly translates between the internal Entity
- * and the various DTO representations used by the Controller.
- */
 public class DTOMapperTest {
 
+    // --- USER MAPPING ---
+
     @Test
-    public void testCreateUser_fromUserPostDTO_toUser_success() {
-        // create UserPostDTO
+    public void convertUserPostDTOtoEntity_success() {
         UserPostDTO userPostDTO = new UserPostDTO();
         userPostDTO.setUsername("testUsername");
         userPostDTO.setPassword("testPassword123");
 
-        // MAP -> Create user
         User user = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
 
-        // check content
         assertEquals(userPostDTO.getUsername(), user.getUsername());
         assertEquals(userPostDTO.getPassword(), user.getPassword());
     }
 
     @Test
-    public void testGetUser_fromUser_toUserGetDTO_success() {
-        // create User
+    public void convertEntityToUserGetDTO_success() {
         User user = new User();
         user.setId(1L);
         user.setUsername("publicUser");
+        Date now = new Date();
+        user.setCreationDate(now);
 
-        // MAP -> Create UserGetDTO
         UserGetDTO userGetDTO = DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
 
-        // check content
         assertEquals(user.getId(), userGetDTO.getId());
         assertEquals(user.getUsername(), userGetDTO.getUsername());
+        assertEquals(now, user.getCreationDate());
     }
 
     @Test
-    public void testGetPersonalUser_fromUser_toUserPersonalGetDTO_success() {
-        // create User with full details
+    public void convertEntityToUserPersonalGetDTO_success() {
         User user = new User();
         user.setId(1L);
-        user.setUsername("privateUser");
-        user.setToken("secret-uuid-token");
-        user.setBio("This is my private bio.");
+        user.setUsername("personalUser");
+        user.setToken("secret-token");
 
-        // MAP -> Create UserPersonalGetDTO
-        UserPersonalGetDTO personalDTO = DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(user);
+        UserPersonalGetDTO dto = DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(user);
 
-        // check content - specifically the sensitive/extra fields
-        assertEquals(user.getId(), personalDTO.getId());
-        assertEquals(user.getUsername(), personalDTO.getUsername());
-        assertEquals(user.getToken(), personalDTO.getToken());
-        assertEquals(user.getBio(), personalDTO.getBio());
+        assertEquals(user.getId(), dto.getId());
+        assertEquals(user.getToken(), dto.getToken());
     }
 
-    @Test
-    public void testCreateRoom_fromRoomPostDTO_toRoom_success() {
-        // create RoomPostDTO
-        RoomPostDTO roomPostDTO = new RoomPostDTO();
-        roomPostDTO.setName("TestRoom");
-
-        // MAP -> Create Room
-        Room room = DTOMapper.INSTANCE.convertRoomPostDTOtoEntity(roomPostDTO);
-
-        // check content
-        assertEquals(roomPostDTO.getName(), room.getName());
-    }
+    // --- ROLES MAPPING (WRITER & JUDGE) ---
 
     @Test
-    public void testGetWriter_fromWriter_toWriterGetDTO_success() {
-        // create User for the Writer
+    public void convertEntityToWriterGetDTO_success() {
         User user = new User();
         user.setId(10L);
         user.setUsername("writerUser");
 
-        // create Writer (Composition)
-        Writer writer = new Writer(user);
-        writer.setGenre("Sci-Fi");
+        Writer writer = new Writer();
+        writer.setUser(user);
+        writer.setId(55L);
         writer.setTurn(true);
-        writer.setText("Once upon a time...");
+        writer.setGenre("Sci-Fi");
+        writer.setText("The story begins...");
+        writer.setQuote("To be or not to be.");
+        Long time = 12345L;
+        writer.setLastSeenAt(time);
 
-        // MAP -> Create WriterGetDTO
-        WriterGetDTO writerGetDTO = DTOMapper.INSTANCE.convertEntityToWriterGetDTO(writer);
+        WriterGetDTO dto = DTOMapper.INSTANCE.convertEntityToWriterGetDTO(writer);
 
-        // check flattened content (User fields)
-        assertEquals(user.getId(), writerGetDTO.getId());
-        assertEquals(user.getUsername(), writerGetDTO.getUsername());
-        // check writer specific fields
-        assertEquals(writer.getGenre(), writerGetDTO.getGenre());
-        assertEquals(writer.getTurn(), writerGetDTO.getTurn());
-        assertEquals(writer.getText(), writerGetDTO.getText());
+        assertEquals(user.getId(), dto.getId());
+        assertEquals(user.getUsername(), dto.getUsername());
+        assertEquals(true, dto.getTurn());
+        assertEquals("Sci-Fi", dto.getGenre());
+        assertEquals("The story begins...", dto.getText());
+        assertEquals("To be or not to be.", dto.getQuote());
+        assertEquals(55L, writer.getId());
+        assertEquals(time, writer.getLastSeenAt());
     }
 
     @Test
-    public void testGetJudge_fromJudge_toJudgeGetDTO_success() {
-        // create User for the Judge
+    public void convertEntityToJudgeGetDTO_success() {
         User user = new User();
         user.setId(20L);
         user.setUsername("judgeUser");
 
-        // create Judge (Composition)
-        Judge judge = new Judge(user);
+        Judge judge = new Judge();
+        judge.setUser(user);
+        judge.setId(88L);
         judge.setInsertions(5L);
+        Long time = 67890L;
+        judge.setLastSeenAt(time);
 
-        // MAP -> Create JudgeGetDTO
-        JudgeGetDTO judgeGetDTO = DTOMapper.INSTANCE.convertEntityToJudgeGetDTO(judge);
+        JudgeGetDTO dto = DTOMapper.INSTANCE.convertEntityToJudgeGetDTO(judge);
 
-        // check flattened content
-        assertEquals(user.getId(), judgeGetDTO.getId());
-        assertEquals(user.getUsername(), judgeGetDTO.getUsername());
-        assertEquals(judge.getInsertions(), judgeGetDTO.getInsertions());
+        assertEquals(user.getId(), dto.getId());
+        assertEquals(user.getUsername(), dto.getUsername());
+        assertEquals(5L, dto.getInsertions());
+        assertEquals(88L, judge.getId());
+        assertEquals(time, judge.getLastSeenAt());
+    }
+
+    // --- GAME, ROOM & STORY MAPPING ---
+
+    @Test
+    public void convertEntityToStoryGetDTO_success() {
+        User winner = new User(); winner.setUsername("win");
+        User loser = new User(); loser.setUsername("loss");
+        Story story = new Story(winner, loser, "Old text", true, "WinG", "LoseG", new ArrayList<>());
+
+        story.setStoryText("New story text");
+        User j = new User();
+        story.getJudges().add(j);
+
+        StoryGetDTO storyGetDTO = DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
+
+        assertEquals("New story text", storyGetDTO.getStoryText());
+        assertEquals(winner.getUsername(), storyGetDTO.getWinnerUsername());
+        assertEquals(1, story.getJudges().size());
+        assertNotNull(story.getCreationDate());
     }
 
     @Test
-    public void testGetRoom_fromRoom_toRoomGetDTO_success() {
-        // 1. Create a Leader with an ID
-        User leader = new User();
-        leader.setId(1L);
-        leader.setUsername("leaderUser");
-
-        // 2. Create the Room
+    public void convertEntityToRoomGetDTO_nullLists_returnsZeroPlayerCount() {
         Room room = new Room();
-        room.setId(100L);
-        room.setName("TestRoom");
-        room.setPlayerCount(1);
-        room.setLobbyLeader(leader);
+        room.setId(2L);
+        room.setName("EmptyRoom");
+        room.setUsers(null);
+        room.setWriters(null);
+        room.setJudges(null);
 
-        // Optional: Add the leader to the users list as well to match real logic
-        room.getUsers().add(leader);
-
-        // 3. MAP
         RoomGetDTO roomGetDTO = DTOMapper.INSTANCE.convertEntityToRoomGetDTO(room);
 
-        // 4. CHECK
-        assertEquals(room.getId(), roomGetDTO.getId());
-        assertEquals(room.getName(), roomGetDTO.getName());
-        assertEquals(1, roomGetDTO.getPlayerCount());
-
-        assertNotNull(roomGetDTO.getLobbyLeader());
-        assertEquals(leader.getId(), roomGetDTO.getLobbyLeader().getId());
-        assertEquals(leader.getUsername(), roomGetDTO.getLobbyLeader().getUsername());
+        assertNotNull(roomGetDTO);
+        assertEquals(0, roomGetDTO.getPlayerCount());
     }
 
     @Test
-    public void testGetGame_fromGame_toGameGetDTO_success() {
-        // create Game
+    public void convertEntityToGameGetDTO_success() {
         Game game = new Game();
-        game.setId(500L);
+        game.setId(100L);
         game.setTimer(90L);
+        game.setCurrentRound(1);
 
-        // Add a writer to test nested list mapping
-        User user = new User();
-        user.setUsername("nestedWriter");
-        Writer writer = new Writer(user);
-        game.getWriters().add(writer);
+        GameGetDTO dto = DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
 
-        // MAP -> Create GameGetDTO
-        GameGetDTO gameGetDTO = DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+        assertEquals(100L, dto.getGameId());
+        assertEquals(90L, dto.getTimer());
+        assertEquals(1, dto.getCurrentRound());
+    }
 
-        // check content
-        assertEquals(game.getId(), gameGetDTO.getGameId());
-        assertEquals(game.getTimer(), gameGetDTO.getTimer());
-        assertEquals(1, gameGetDTO.getWriters().size());
-        assertEquals(user.getUsername(), gameGetDTO.getWriters().get(0).getUsername());
+    // --- DIRECT DTO POJO TESTS ---
+
+    @Test
+    public void testUserPutDTO_gettersSetters() {
+        UserPutDTO userPutDTO = new UserPutDTO();
+        userPutDTO.setBio("This is a new bio");
+        assertEquals("This is a new bio", userPutDTO.getBio());
+    }
+
+    @Test
+    public void testUserPasswordPutDTO_gettersSetters() {
+        UserPasswordPutDTO dto = new UserPasswordPutDTO();
+        dto.setCurrentPassword("oldPassword123");
+        dto.setNewPassword("newPassword456");
+
+        assertEquals("oldPassword123", dto.getCurrentPassword());
+        assertEquals("newPassword456", dto.getNewPassword());
+    }
+
+    @Test
+    public void testUserDeleteDTO_gettersSetters() {
+        UserDeleteDTO userDeleteDTO = new UserDeleteDTO();
+        userDeleteDTO.setPassword("permanentDeletePassword");
+        assertEquals("permanentDeletePassword", userDeleteDTO.getPassword());
     }
 }

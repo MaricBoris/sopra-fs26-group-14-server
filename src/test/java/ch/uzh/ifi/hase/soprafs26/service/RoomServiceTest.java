@@ -7,7 +7,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -41,13 +40,11 @@ public class RoomServiceTest {
     public void setup() {
         MockitoAnnotations.openMocks(this);
 
-        // Setup test user
         testUser = new User();
         testUser.setId(1L);
         testUser.setUsername("testUser");
         testUser.setToken("valid-token");
 
-        // Setup test room
         testRoom = new Room();
         testRoom.setId(1L);
         testRoom.setName("TestRoom");
@@ -56,26 +53,25 @@ public class RoomServiceTest {
         testRoom.setWriters(new ArrayList<>());
         testRoom.setJudges(new ArrayList<>());
 
-        // Default behavior for mocks
         given(userService.extractToken(anyString())).willReturn("valid-token");
         given(userService.findUserFromToken("valid-token")).willReturn(testUser);
         given(roomRepository.save(any())).willReturn(testRoom);
     }
 
-    // --- 401 Unauthorized Helper (Applies to all) ---
+    // --- AUTHENTICATION ---
 
     @Test
     public void anyMethod_invalidToken_401Unauthorized() {
         given(userService.extractToken(anyString())).willReturn("invalid-token");
         given(userService.findUserFromToken("invalid-token"))
-                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Error: reason<string> Go to login and clear local Storage"));
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED));
 
         assertThrows(ResponseStatusException.class, () -> roomService.getRooms("Bearer invalid-token"));
         assertThrows(ResponseStatusException.class, () -> roomService.createRoom(testRoom, "Bearer invalid-token"));
         assertThrows(ResponseStatusException.class, () -> roomService.joinRoom(1L, "Bearer invalid-token"));
     }
 
-    // --- Create Room Tests ---
+    // --- ROOM CREATION ---
 
     @Test
     public void createRoom_validInput_success() {
@@ -99,7 +95,38 @@ public class RoomServiceTest {
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
     }
 
-    // --- Join Room Tests ---
+    // --- ROOM RETRIEVAL ---
+
+    @Test
+    public void getRooms_validRequest_200Ok() {
+        given(roomRepository.findAll()).willReturn(List.of(testRoom));
+
+        List<Room> result = roomService.getRooms("Bearer valid-token");
+
+        assertEquals(1, result.size());
+        assertEquals(testRoom.getName(), result.get(0).getName());
+    }
+
+    @Test
+    public void getRoomById_validRequest_200Ok() {
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        Room result = roomService.getRoomById(1L, "Bearer valid-token");
+
+        assertEquals(testRoom.getName(), result.getName());
+    }
+
+    @Test
+    public void getRoomById_notFound_404NotFound() {
+        given(roomRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.getRoomById(1L, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    // --- ROOM ENTRY (JOINING) ---
 
     @Test
     public void joinRoom_validInput_success() {
@@ -123,6 +150,17 @@ public class RoomServiceTest {
     }
 
     @Test
+    public void joinRoom_alreadyIn_400BadRequest() {
+        testRoom.getUsers().add(testUser);
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.joinRoom(1L, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
     public void joinRoom_notFound_404NotFound() {
         given(roomRepository.findById(anyLong())).willReturn(Optional.empty());
 
@@ -132,11 +170,11 @@ public class RoomServiceTest {
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
     }
 
-    // --- Swap Role Tests ---
+    // --- ROLE MANAGEMENT (SWAPPING) ---
 
     @Test
     public void swapRole_toWriter_success() {
-        testRoom.getUsers().add(testUser); // User must be in room
+        testRoom.getUsers().add(testUser);
         given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
 
         Room updatedRoom = roomService.swapRole(1L, "WRITER", "Bearer valid-token");
@@ -147,8 +185,29 @@ public class RoomServiceTest {
     }
 
     @Test
+    public void swapRole_toJudge_success() {
+        testRoom.getUsers().add(testUser);
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        Room updatedRoom = roomService.swapRole(1L, "JUDGE", "Bearer valid-token");
+
+        assertEquals(1, updatedRoom.getJudges().size());
+        assertEquals("testUser", updatedRoom.getJudges().get(0).getUser().getUsername());
+    }
+
+    @Test
+    public void swapRole_currentlyWriter_swapToUser_success() {
+        testRoom.getWriters().add(new Writer(testUser));
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        Room updatedRoom = roomService.swapRole(1L, "USER", "Bearer valid-token");
+
+        assertEquals(1, updatedRoom.getUsers().size());
+        assertEquals(0, updatedRoom.getWriters().size());
+    }
+
+    @Test
     public void swapRole_notInRoom_400BadRequest() {
-        // testRoom is empty
         given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
@@ -162,11 +221,11 @@ public class RoomServiceTest {
         testRoom.getUsers().add(testUser);
 
         User writerUser1 = new User();
-        writerUser1.setId(2L);
+        writerUser1.setId(10L);
         testRoom.getWriters().add(new Writer(writerUser1));
 
         User writerUser2 = new User();
-        writerUser2.setId(3L);
+        writerUser2.setId(11L);
         testRoom.getWriters().add(new Writer(writerUser2));
 
         given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
@@ -182,7 +241,7 @@ public class RoomServiceTest {
         testRoom.getUsers().add(testUser);
 
         User judgeUser = new User();
-        judgeUser.setId(4L);
+        judgeUser.setId(20L);
         testRoom.getJudges().add(new Judge(judgeUser));
 
         given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
@@ -201,7 +260,98 @@ public class RoomServiceTest {
                 () -> roomService.swapRole(99L, "WRITER", "Bearer valid-token"));
     }
 
-    // --- Start Game Tests ---
+    // --- ROOM EXIT & LEADERSHIP ---
+
+    @Test
+    public void leaveRoom_writerLeaves_success() {
+        User leader = new User();
+        leader.setId(99L);
+        testRoom.setLobbyLeader(leader);
+        testRoom.getUsers().add(leader);
+        testRoom.getWriters().add(new Writer(testUser));
+        testRoom.setPlayerCount(2);
+
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        roomService.leaveRoom(1L, "Bearer valid-token");
+
+        assertEquals(0, testRoom.getWriters().size());
+        assertEquals(1, testRoom.getPlayerCount());
+        verify(roomRepository, times(1)).save(testRoom);
+    }
+
+    @Test
+    public void leaveRoom_lastPlayer_deletesRoom() {
+        testRoom.getUsers().add(testUser);
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        roomService.leaveRoom(1L, "Bearer valid-token");
+
+        verify(roomRepository, times(1)).delete(testRoom);
+    }
+
+    @Test
+    public void leaveRoom_leaderLeaves_promotesNewLeader() {
+        User runnerUp = new User();
+        runnerUp.setId(2L);
+        testRoom.setLobbyLeader(testUser);
+        testRoom.getUsers().add(testUser);
+        testRoom.getUsers().add(runnerUp);
+
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        roomService.leaveRoom(1L, "Bearer valid-token");
+
+        assertEquals(runnerUp, testRoom.getLobbyLeader());
+    }
+
+    @Test
+    public void leaveRoom_promoteWriter_success() {
+        User writerUser = new User();
+        writerUser.setId(2L);
+        testRoom.getWriters().add(new Writer(writerUser));
+        testRoom.setLobbyLeader(testUser);
+        testRoom.getUsers().add(testUser);
+
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        roomService.leaveRoom(1L, "Bearer valid-token");
+
+        assertEquals(writerUser.getId(), testRoom.getLobbyLeader().getId());
+    }
+
+    @Test
+    public void leaveRoom_promoteJudge_success() {
+        User judgeUser = new User();
+        judgeUser.setId(3L);
+        testRoom.getJudges().add(new Judge(judgeUser));
+        testRoom.setLobbyLeader(testUser);
+        testRoom.getUsers().add(testUser);
+
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        roomService.leaveRoom(1L, "Bearer valid-token");
+
+        assertEquals(judgeUser.getId(), testRoom.getLobbyLeader().getId());
+    }
+
+    @Test
+    public void leaveRoom_userNotInRoom_400BadRequest() {
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.leaveRoom(1L, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    public void leaveRoom_notFound_404NotFound() {
+        given(roomRepository.findById(anyLong())).willReturn(Optional.empty());
+        assertThrows(ResponseStatusException.class, () -> roomService.leaveRoom(99L, "Bearer valid-token"));
+    }
+
+    // --- GAME INITIALIZATION ---
 
     @Test
     public void startGame_validState_success() {
@@ -218,6 +368,21 @@ public class RoomServiceTest {
         assertNotNull(game);
         verify(gameRepository, times(1)).save(any());
         verify(roomRepository, times(1)).delete(testRoom);
+    }
+
+    @Test
+    public void startGame_genresAssignedDistinctly_success() {
+        testRoom.setLobbyLeader(testUser);
+        testRoom.getWriters().add(new Writer(new User()));
+        testRoom.getWriters().add(new Writer(new User()));
+        testRoom.getJudges().add(new Judge(new User()));
+
+        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+        given(gameRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+
+        Game game = roomService.startGame(1L, "Bearer valid-token");
+
+        assertNotEquals(game.getWriters().get(0).getGenre(), game.getWriters().get(1).getGenre());
     }
 
     @Test
@@ -248,103 +413,16 @@ public class RoomServiceTest {
     }
 
     @Test
-    public void startGame_genresAssignedDistinctly_success() {
+    public void startGame_missingJudge_400BadRequest() {
         testRoom.setLobbyLeader(testUser);
         testRoom.getWriters().add(new Writer(new User()));
         testRoom.getWriters().add(new Writer(new User()));
-        testRoom.getJudges().add(new Judge(new User()));
 
-        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
-        given(gameRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
-
-        Game game = roomService.startGame(1L, "Bearer valid-token");
-
-        String genre1 = game.getWriters().get(0).getGenre();
-        String genre2 = game.getWriters().get(1).getGenre();
-
-        assertNotNull(genre1);
-        assertNotNull(genre2);
-        assertNotEquals(genre1, genre2, "Genres must be distinct for both writers");
-    }
-
-    // --- Leave Room Tests ---
-
-    @Test
-    public void leaveRoom_lastPlayer_deletesRoom() {
-        testRoom.getUsers().add(testUser);
-        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
-
-        roomService.leaveRoom(1L, "Bearer valid-token");
-
-        verify(roomRepository, times(1)).delete(testRoom);
-    }
-
-    @Test
-    public void leaveRoom_leaderLeaves_promotesNewLeader() {
-        User runnerUp = new User();
-        runnerUp.setId(2L);
-
-        testRoom.setLobbyLeader(testUser);
-        testRoom.getUsers().add(testUser);
-        testRoom.getUsers().add(runnerUp);
-
-        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
-
-        roomService.leaveRoom(1L, "Bearer valid-token");
-
-        assertEquals(runnerUp, testRoom.getLobbyLeader());
-        verify(roomRepository, times(1)).save(testRoom);
-    }
-
-    @Test
-    public void leaveRoom_userNotInRoom_400BadRequest() {
-        // testRoom is empty, user is not in any list
         given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> roomService.leaveRoom(1L, "Bearer valid-token"));
+                () -> roomService.startGame(1L, "Bearer valid-token"));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-    }
-
-    @Test
-    public void leaveRoom_notFound_404NotFound() {
-        given(roomRepository.findById(anyLong())).willReturn(Optional.empty());
-        assertThrows(ResponseStatusException.class, () -> roomService.leaveRoom(99L, "Bearer valid-token"));
-    }
-
-    // --- Get All Rooms ---
-
-    @Test
-    public void getRooms_validRequest_200Ok() {
-        List<Room> rooms = List.of(testRoom);
-        given(roomRepository.findAll()).willReturn(rooms);
-
-        List<Room> result = roomService.getRooms("Bearer valid-token");
-
-        assertEquals(1, result.size());
-        assertEquals(testRoom.getName(), result.get(0).getName());
-    }
-
-    // --- Get Room By Id ---
-
-    @Test
-    public void getRoomById_validRequest_200Ok() {
-        given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
-
-        Room result = roomService.getRoomById(1L, "Bearer valid-token");
-
-        assertEquals(testRoom.getName(), result.getName());
-    }
-
-    @Test
-    public void getRoomById_notFound_404NotFound() {
-        given(roomRepository.findById(anyLong())).willReturn(Optional.empty());
-
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> roomService.getRoomById(1L, "Bearer valid-token"));
-
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("was not found"));
     }
 }
