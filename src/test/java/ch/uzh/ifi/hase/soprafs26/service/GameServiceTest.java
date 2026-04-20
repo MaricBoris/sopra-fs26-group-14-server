@@ -68,6 +68,18 @@ public class GameServiceTest {
         when(userRepository.findByToken("token")).thenReturn(user);
     }
 
+    private User user(long id) { User u = new User(); u.setId(id); return u; }
+    private Judge judge(long id) { return new Judge(user(id)); }
+    private Writer writer(long id) { return new Writer(user(id)); }
+
+    private Game gameWith(User judgeUser, Writer... writers) {
+        Game g = new Game(); g.setId(1L);
+        g.setJudges(List.of(new Judge(judgeUser)));
+        g.setWriters(new ArrayList<>(List.of(writers)));
+        mockExitDependencies(g, judgeUser);
+        return g;
+    }
+
     // ==================== getGame(Long) ====================
 
     @Test
@@ -850,5 +862,41 @@ public class GameServiceTest {
 
         assertThrows(ResponseStatusException.class,
                 () -> gameService.exitGame(1L, "Bearer token"));
+    }
+
+    // ==================== assignQuote ====================
+
+    @Test
+    void assignQuote_success() {
+        User judge = user(1L);
+        Writer w = writer(2L);
+        Game game = gameWith(judge, w, writer(3L));
+        when(quoteService.fetchRandomQuote()).thenReturn("quote");
+        gameService.assignQuote(1L, 1, "Bearer token");
+        assertEquals("quote", w.getQuote());
+        verify(gameRepository).saveAndFlush(game);
+    }
+
+    @Test
+    void assignQuote_userNotJudge_throws403() {
+        User actualJudge = user(1L);
+        Judge judge = new Judge(actualJudge);
+        User requestingUser = user(99L);
+        Game game = createGameWith(List.of(writer(2L), writer(3L)), List.of(judge));
+
+        when(userService.extractToken(any())).thenReturn("token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("token")).thenReturn(requestingUser);
+
+        assertThrows(ResponseStatusException.class, () -> gameService.assignQuote(1L, 1, "Bearer token"));
+    }
+
+    @Test
+    void assignQuote_quoteFetchFails_throws502() {
+        User judge = user(1L);
+        Game game = gameWith(judge, writer(2L), writer(3L));
+        when(quoteService.fetchRandomQuote()).thenReturn(null);
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> gameService.assignQuote(1L, 1, "Bearer token"));
+        assertEquals(HttpStatus.BAD_GATEWAY, ex.getStatusCode());
     }
 }
