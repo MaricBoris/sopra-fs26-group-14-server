@@ -479,6 +479,7 @@ public class GameService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Quote already assigned to this writer");
         }
         targetWriter.setQuote(quote);
+        targetWriter.setQuoteAssignedRound(playedGame.getCurrentRound());
 
         gameRepository.saveAndFlush(playedGame);
         return playedGame;
