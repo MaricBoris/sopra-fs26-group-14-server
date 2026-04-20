@@ -53,6 +53,21 @@ public class GameServiceTest {
         MockitoAnnotations.openMocks(this);
     }
 
+
+    private Game createGameWith(List<Writer> writers, List<Judge> judges) {
+        Game game = new Game();
+        game.setId(1L);
+        game.setWriters(new ArrayList<>(writers));
+        game.setJudges(new ArrayList<>(judges));
+        return game;
+    }
+
+    private void mockExitDependencies(Game game, User user) {
+        when(userService.extractToken(any())).thenReturn("token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("token")).thenReturn(user);
+    }
+
     // ==================== getGame(Long) ====================
 
     @Test
@@ -773,5 +788,67 @@ public class GameServiceTest {
 
         // 0 votes >= 0 judges → true
         assertTrue(gameService.allJudgesVoted(game));
+    }
+
+    // ==================== exitGame ====================
+
+    @Test
+    void exitGame_removesWriter_deletesGame() {
+        User user = new User();
+        user.setId(10L);
+        User otherWriterUser = new User();
+        otherWriterUser.setId(20L);
+        Writer writer = new Writer(user);
+        Writer otherWriter = new Writer(otherWriterUser);
+        Judge judge = new Judge(new User());
+        judge.getUser().setId(30L);
+        Game game = createGameWith(List.of(writer, otherWriter), List.of(judge));
+        mockExitDependencies(game, user);
+
+        gameService.exitGame(1L, "Bearer token");
+
+        assertFalse(game.getWriters().contains(writer));
+        verify(gameRepository).delete(game);
+        verify(gameRepository).flush();
+        verify(gameRepository, never()).save(any());
+    }
+
+    @Test
+    void exitGame_removesJudge_deletesIfNoJudgeLeft() {
+        User user = new User();
+        user.setId(20L);
+
+        Writer writer1 = new Writer(new User());
+        writer1.getUser().setId(11L);
+        Writer writer2 = new Writer(new User());
+        writer2.getUser().setId(12L);
+
+        Judge judge = new Judge(user);
+
+        Game game = createGameWith(List.of(writer1, writer2), List.of(judge));
+        mockExitDependencies(game, user);
+
+        gameService.exitGame(1L, "Bearer token");
+
+        assertTrue(game.getJudges().isEmpty());
+        verify(gameRepository).delete(game);
+        verify(gameRepository).flush();
+    }
+
+    @Test
+    void exitGame_userNotInGame_throws403() {
+        User outsider = new User();
+        outsider.setId(99L);
+
+        Writer writer = new Writer(new User());
+        writer.getUser().setId(1L);
+        Judge judge = new Judge(new User());
+        judge.getUser().setId(2L);
+
+        Game game = createGameWith(List.of(writer), List.of(judge));
+        mockExitDependencies(game, outsider);
+
+        assertThrows(ResponseStatusException.class,
+                () -> gameService.exitGame(1L, "Bearer token"));
     }
 }
