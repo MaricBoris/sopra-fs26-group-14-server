@@ -7,6 +7,7 @@ public class WriterGetDTO {
     private String genre;
     private String text;
     private String quote;
+    private Integer quoteAssignedRound;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -25,4 +26,7 @@ public class WriterGetDTO {
 
     public String getQuote() { return quote; }
     public void setQuote(String quote) { this.quote = quote; }
+
+    public Integer getQuoteAssignedRound() { return quoteAssignedRound; }
+    public void setQuoteAssignedRound(Integer quoteAssignedRound) { this.quoteAssignedRound = quoteAssignedRound; }
 }
