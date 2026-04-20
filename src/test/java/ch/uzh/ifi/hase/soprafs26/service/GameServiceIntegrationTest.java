@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
@@ -177,10 +178,11 @@ public class GameServiceIntegrationTest {
     public void checkGameIsOver_timerZero_noException() {
         Game game = new Game();
         game.setTimer(0L);
+        game.setPhase(GamePhase.EVALUATION);
         game = gameRepository.save(game);
 
         final Game savedGame = game;
-        //assertDoesNotThrow(() -> gameService.checkGameIsOver(savedGame));
+        assertDoesNotThrow(() -> gameService.checkGameIsOver(savedGame));
     }
 
     @Test
@@ -289,6 +291,7 @@ public class GameServiceIntegrationTest {
 
         gameService.cleanupGame(game);
 
-        //assertFalse(gameRepository.findById(gameId).isPresent());
+        Game result = gameRepository.findById(gameId).orElseThrow();
+        assertEquals(GamePhase.FINISHED, result.getPhase());
     }
 }
