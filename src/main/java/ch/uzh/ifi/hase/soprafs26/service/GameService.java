@@ -63,6 +63,16 @@ public class GameService {
         }
        
         
+        //checkIfPlayerDisconnected(playedGame, timeoutMillis, now);
+        if (playedGame.getWriters().size()!=2 || playedGame.getJudges().size()!=1 ){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"); //Check 400
+        }
+        resolveExpiredTurnIfNeeded(playedGame);
+        gameRepository.saveAndFlush(playedGame);
+        return playedGame;
+    }
+
+    private void checkIfPlayerDisconnected(Game playedGame, Long timeoutMillis, Long now){
         for (Writer writer : playedGame.getWriters()) {
             if (now - writer.getLastSeenAt() > timeoutMillis) {
                 gameCleanupService.deleteGameAndFlush(playedGame); //we need to outsource this because of transactional that would rollback the whole thing after the exception
@@ -86,14 +96,7 @@ public class GameService {
                 gameRepository.save(playedGame);
             }
         }
-        if (playedGame.getWriters().size()!=2 || playedGame.getJudges().size()!=1 ){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"); //Check 400
-        }
-        resolveExpiredTurnIfNeeded(playedGame);
-        gameRepository.saveAndFlush(playedGame);
-        return playedGame;
     }
-
     private void resolveExpiredTurnIfNeeded(Game playedGame) {
         if (playedGame == null) return;
         if (playedGame.getPhase() != GamePhase.WRITING) return;
@@ -165,6 +168,10 @@ public class GameService {
         }
 
         String prettyInput = (inputText == null) ? "" : inputText.trim();
+
+        if (prettyInput.length()>2000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Input is too long!");
+        }
 
         Story story = playedGame.getStory();
         if (story == null) {
@@ -480,5 +487,7 @@ public class GameService {
         gameRepository.saveAndFlush(playedGame);
         return playedGame;
     }
+
+
 }
 

@@ -56,13 +56,28 @@ public class Story implements Serializable {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
     public User getWinner() { return winner; }
+    public void setWinner(User winner) { this.winner = winner; }
+
     public User getLoser() { return loser; }
+    public void setLoser(User loser) { this.loser = loser; }
+
     public String getStoryText() { return storyText; }
-    public void setStoryText(String text) { this.storyText=text; }
+    public void setStoryText(String text) { this.storyText = text; }
+
     public Boolean getHasWinner() { return hasWinner; }
+    public void setHasWinner(Boolean hasWinner) { this.hasWinner = hasWinner; }
+
     public String getWinGenre() { return winGenre; }
+    public void setWinGenre(String winGenre) { this.winGenre = winGenre; }
+
     public String getLoseGenre() { return loseGenre; }
+    public void setLoseGenre(String loseGenre) { this.loseGenre = loseGenre; }
+
     public List<User> getJudges() { return judges; }
+    public void setJudges(List<User> judges) { this.judges = judges; }
+
     public Date getCreationDate() { return creationDate; }
+    public void setCreationDate(Date creationDate) { this.creationDate = creationDate; }
 }
