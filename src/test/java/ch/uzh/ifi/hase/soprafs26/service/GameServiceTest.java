@@ -1,7 +1,9 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +41,9 @@ public class GameServiceTest {
 
     @Mock
     private QuoteService quoteService;
+
+    @Mock
+    private StoryRepository storyRepository;
 
     @InjectMocks
     private GameService gameService;
@@ -170,8 +175,12 @@ public class GameServiceTest {
 
     @Test
     public void findWriterFromId_validId_returnsWriter() {
+        User user = new User();
+        user.setId(5L);
+
         Writer writer = new Writer();
-        writer.setId(5L);
+        writer.setId(1L);
+        writer.setUser(user);
 
         Game game = new Game();
         game.setWriters(List.of(writer));
@@ -182,8 +191,11 @@ public class GameServiceTest {
 
     @Test
     public void findWriterFromId_invalidId_throws400() {
+        User user = new User();
+        user.setId(5L);
         Writer writer = new Writer();
         writer.setId(5L);
+        writer.setUser(user);
 
         Game game = new Game();
         game.setWriters(List.of(writer));
@@ -195,10 +207,18 @@ public class GameServiceTest {
 
     @Test
     public void findWriterFromId_multipleWriters_returnsCorrectOne() {
+        User user1 = new User();
+        user1.setId(1L);
+        User user2 = new User();
+        user2.setId(2L);
+
         Writer writer1 = new Writer();
         writer1.setId(1L);
+        writer1.setUser(user1);
+
         Writer writer2 = new Writer();
         writer2.setId(2L);
+        writer2.setUser(user2);
 
         Game game = new Game();
         game.setWriters(List.of(writer1, writer2));
@@ -753,5 +773,206 @@ public class GameServiceTest {
 
         // 0 votes >= 0 judges → true
         assertTrue(gameService.allJudgesVoted(game));
+    }
+
+        private User makeUser(Long id) {
+        User user = new User();
+        user.setId(id);
+        return user;
+    }
+
+    private Game makeGame(Writer activeWriter, Writer otherWriter, Judge judge) {
+        Game game = new Game();
+        game.setId(1L);
+        game.setPhase(GamePhase.WRITING);
+        game.setRoundResolved(false);
+        game.setCurrentRound(1);
+        game.setTimer(60L);
+        game.setTurnStartedAt(System.currentTimeMillis());
+
+        List<Writer> writers = new ArrayList<>();
+        writers.add(activeWriter);
+        writers.add(otherWriter);
+        game.setWriters(writers);
+
+        List<Judge> judges = new ArrayList<>();
+        judges.add(judge);
+        game.setJudges(judges);
+
+        return game;
+    }
+
+    private Writer makeActiveWriter(Long writerId, Long userId, String text, String genre) {
+        Writer writer = new Writer();
+        writer.setId(writerId);
+        writer.setUser(makeUser(userId));
+        writer.setTurn(true);
+        writer.setText(text);
+        writer.setGenre(genre);
+        return writer;
+    }
+
+    private Writer makeOtherWriter(Long writerId, Long userId, String text, String genre) {
+        Writer writer = new Writer();
+        writer.setId(writerId);
+        writer.setUser(makeUser(userId));
+        writer.setTurn(false);
+        writer.setText(text);
+        writer.setGenre(genre);
+        return writer;
+    }
+
+    @Test
+    public void insertWriterInput_userNotWriter_throws403() {
+        Writer activeWriter = makeActiveWriter(11L, 1L, "draft from active writer", "Fantasy");
+        Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
+
+        Judge judge = new Judge(makeUser(3L));
+        judge.setId(13L);
+
+        Game game = makeGame(activeWriter, otherWriter, judge);
+        game.setStory(new Story());
+
+        User outsider = makeUser(99L);
+
+        when(userService.extractToken("Bearer outsider-token")).thenReturn("outsider-token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("outsider-token")).thenReturn(outsider);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> gameService.insertWriterInput(1L, 1, "Some text", "Bearer outsider-token"));
+
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        verify(gameRepository, never()).saveAndFlush(any(Game.class));
+    }
+
+    @Test
+    public void insertWriterInput_notWritersTurn_throws403() {
+        Writer activeWriter = makeActiveWriter(11L, 1L, "draft from active writer", "Fantasy");
+        Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
+
+        Judge judge = new Judge(makeUser(3L));
+        judge.setId(13L);
+
+        Game game = makeGame(activeWriter, otherWriter, judge);
+        game.setStory(new Story());
+
+        User otherWriterUser = makeUser(2L);
+
+        when(userService.extractToken("Bearer notTurn-token")).thenReturn("notTurn-token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("notTurn-token")).thenReturn(otherWriterUser);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> gameService.insertWriterInput(1L, 2, "Some text", "Bearer notTurn-token"));
+
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        verify(gameRepository, never()).saveAndFlush(any(Game.class));
+    }
+
+    @Test
+    public void insertWriterInput_inputTooLong_throws400() {
+        Writer activeWriter = makeActiveWriter(11L, 1L, "draft from active writer", "Fantasy");
+        Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
+
+        Judge judge = new Judge(makeUser(3L));
+        judge.setId(13L);
+
+        Game game = makeGame(activeWriter, otherWriter, judge);
+        game.setStory(new Story());
+
+        User activeUser = makeUser(1L);
+
+        when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("active-token")).thenReturn(activeUser);
+
+        String tooLongInput = "x".repeat(2001);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> gameService.insertWriterInput(1L, 1, tooLongInput, "Bearer active-token"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        verify(gameRepository, never()).saveAndFlush(any(Game.class));
+    }
+
+    @Test
+    public void insertWriterInput_validInput_appendsToStory_clearsDraft_switchesTurn_resetsTimerAndPersists() {
+        Writer activeWriter = makeActiveWriter(11L, 1L, "draft from active writer", "Fantasy");
+        Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
+
+        Judge judge = new Judge(makeUser(3L));
+        judge.setId(13L);
+
+        Game game = makeGame(activeWriter, otherWriter, judge);
+
+        Story story = new Story();
+        story.setStoryText("Once upon a time");
+        game.setStory(story);
+
+        User activeUser = makeUser(1L);
+
+        when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("active-token")).thenReturn(activeUser);
+        when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        long beforeCall = System.currentTimeMillis();
+        Game result = gameService.insertWriterInput(1L, 1, "  there was a dragon  ", "Bearer active-token");
+        long afterCall = System.currentTimeMillis();
+
+        assertNotNull(result.getStory());
+        assertEquals("Once upon a time there was a dragon", result.getStory().getStoryText());
+        assertEquals("", result.getWriters().get(0).getText());
+        assertFalse(result.getWriters().get(0).getTurn());
+        assertTrue(result.getWriters().get(1).getTurn());
+        assertEquals(2, result.getCurrentRound());
+        assertEquals(90L, result.getTimer());
+        assertNotNull(result.getTurnStartedAt());
+        assertTrue(result.getTurnStartedAt() >= beforeCall);
+        assertTrue(result.getTurnStartedAt() <= afterCall);
+
+        verify(gameRepository, times(1)).saveAndFlush(game);
+    }
+
+    @Test
+    public void getGame_expiredTurn_autoSubmitsEmptyRound_switchesTurn_resetsTimerAndPersists() {
+        Writer activeWriter = makeActiveWriter(11L, 1L, "draft that should be cleared on timeout", "Fantasy");
+        Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
+
+        Judge judge = new Judge(makeUser(3L));
+        judge.setId(13L);
+
+        Game game = makeGame(activeWriter, otherWriter, judge);
+
+        Story story = new Story();
+        story.setStoryText("Existing story");
+        game.setStory(story);
+
+        game.setTimer(1L);
+        game.setTurnStartedAt(System.currentTimeMillis() - 5000L);
+
+        User activeUser = makeUser(1L);
+
+        when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("active-token")).thenReturn(activeUser);
+        when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        long beforeCall = System.currentTimeMillis();
+        Game result = gameService.getGame(1L, "Bearer active-token");
+        long afterCall = System.currentTimeMillis();
+
+        assertEquals("", result.getWriters().get(0).getText());
+        assertFalse(result.getWriters().get(0).getTurn());
+        assertTrue(result.getWriters().get(1).getTurn());
+        assertEquals(2, result.getCurrentRound());
+        assertEquals(90L, result.getTimer());
+        assertNotNull(result.getTurnStartedAt());
+        assertTrue(result.getTurnStartedAt() >= beforeCall);
+        assertTrue(result.getTurnStartedAt() <= afterCall);
+        assertEquals("Existing story", result.getStory().getStoryText());
+
+        verify(gameRepository, times(2)).saveAndFlush(game);
     }
 }

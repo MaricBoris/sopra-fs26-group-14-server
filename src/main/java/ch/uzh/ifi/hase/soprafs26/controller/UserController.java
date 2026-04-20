@@ -22,7 +22,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-
+    String bearer="Bearer ";
     UserController(UserService userService) {
         this.userService = userService;
     }
@@ -80,7 +80,7 @@ public class UserController {
         User foundUserId = userService.findUserFromId(id);
 
         String token = authHeader;
-        if (token != null && token.startsWith("Bearer ")) {
+        if (token != null && token.startsWith(bearer)) {
             token = token.substring(7);
         }
 
@@ -117,4 +117,31 @@ public class UserController {
                            @RequestHeader("Authorization") String bearerToken) {
         userService.deleteUser(id, deleteDTO, bearerToken);
     }
+
+    @GetMapping("/results")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public List<StoryGetDTO> getAllStories(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
+        String token = bearerToken;
+        if (token != null && token.startsWith(bearer)) {
+            token = token.substring(7);
+        }
+        userService.findUserFromToken(token);
+        return userService.findAllStories();
+    }
+
+    @GetMapping("/results/story/{storyId}")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public StoryGetDTO getStoryById(@PathVariable Long storyId,
+                                    @RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken;
+        if (token != null && token.startsWith(bearer)) {
+            token = token.substring(7);
+        }
+        userService.findUserFromToken(token);
+        return userService.findStoryById(storyId);
+    }
+
+
 }

@@ -29,7 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
-
+import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;

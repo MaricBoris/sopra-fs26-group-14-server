@@ -1,18 +1,17 @@
 package ch.uzh.ifi.hase.soprafs26.entity;
 
+import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
 import jakarta.persistence.*;
-import ch.uzh.ifi.hase.soprafs26.entity.Story;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import ch.uzh.ifi.hase.soprafs26.entity.GamePhase;
 
 @Entity
 @Table(name = "GAME")
 public class Game implements Serializable {
 
-    public static final int MAX_ROUNDS = 6;
+    public static final int MAX_ROUNDS = 20;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -80,9 +79,12 @@ public class Game implements Serializable {
         }
 
         if (currentRound > MAX_ROUNDS) {
+            setCurrentRound(MAX_ROUNDS);
             setPhase(GamePhase.EVALUATION);
+            setTurnStartedAt(System.currentTimeMillis());
+            setTimer(90L); 
         }
-}
+    }
     
 
     public Story getStory() { return story; }
