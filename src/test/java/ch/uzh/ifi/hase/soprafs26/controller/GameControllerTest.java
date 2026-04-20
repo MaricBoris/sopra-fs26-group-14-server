@@ -1,7 +1,22 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.entity.*;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameInputDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.JudgeGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.WriterGetDTO;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import tools.jackson.databind.ObjectMapper;
+
+import static org.hamcrest.Matchers.is;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import java.util.Date;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -12,6 +27,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -20,6 +38,9 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @WebMvcTest(GameController.class)
 public class GameControllerTest {
@@ -145,4 +166,451 @@ public class GameControllerTest {
         mockMvc.perform(postRequest)
                 .andExpect(status().isBadRequest());
     }
+
+    //helper method setup
+
+        private Game createTestGame() {
+                Game game = new Game();
+                game.setId(1L);
+                game.setTimer(60L);
+                game.setTurnStartedAt(System.currentTimeMillis());
+                game.setCurrentRound(1);
+                game.setPhase(GamePhase.WRITING);
+
+                // User 1
+                User user1 = new User();
+                user1.setId(10L);
+                user1.setUsername("charles");
+                user1.setToken("token-writer1");
+                user1.setBio("Married to my montbretias");
+                user1.setPassword("gardenlover");
+                user1.setCreationDate(new Date());
+                //user1.setHistory(new ArrayList<>());
+
+                // User 2
+                User user2 = new User();
+                user2.setId(11L);
+                user2.setUsername("lottie");
+                user2.setToken("token-writer2");
+                user2.setBio("Hugh Grants biggest fan");
+                user2.setPassword("TwoWeeksNotice");
+                user2.setCreationDate(new Date());
+                //user2.setHistory(new ArrayList<>());
+
+                // User 3
+                User user3 = new User();
+                user3.setId(12L);
+                user3.setUsername("AntonEgo");
+                user3.setToken("token-judge1");
+                user3.setBio("I will most likely despise your writing");
+                user3.setPassword("ratatouille");
+                user3.setCreationDate(new Date());
+                //user3.setHistory(new ArrayList<>());
+
+                // Writer 1
+                Writer w1 = new Writer();
+                w1.setId(100L);
+                w1.setUser(user1);
+                w1.setTurn(true);
+                w1.setGenre("Fantasy");
+                w1.setText("Once upon a time there was a grumpy green dragon.");
+                w1.setLastSeenAt(System.currentTimeMillis());
+                w1.setQuote("A mysterious quote");
+
+                // Writer 2
+                Writer w2 = new Writer();
+                w2.setId(101L);
+                w2.setUser(user2);
+                w2.setTurn(false);
+                w2.setGenre("Sci-Fi");
+                w2.setText("In a distant galaxy");
+                w2.setLastSeenAt(System.currentTimeMillis());
+                w2.setQuote("No pain no gain");
+
+                List<Writer> writers = new ArrayList<>();
+                writers.add(w1);
+                writers.add(w2);
+                game.setWriters(writers);
+
+                // Judge
+                Judge j1 = new Judge();
+                j1.setId(200L);
+                j1.setUser(user3);
+                j1.setInsertions(1L);
+                j1.setLastSeenAt(System.currentTimeMillis());
+
+                List<Judge> judges = new ArrayList<>();
+                judges.add(j1);
+                game.setJudges(judges);
+
+                // Story
+                Story story = new Story();
+                story.setId(300L);
+                story.setWinner(user1);
+                story.setLoser(user2);
+                story.setStoryText("Amazing story text.");
+                story.setHasWinner(true);
+                story.setWinGenre("Fantasy");
+                story.setLoseGenre("Sci-Fi");
+                story.setJudges(new ArrayList<>(List.of(user3)));
+                story.setCreationDate(new Date());
+
+                game.setStory(story);
+
+                return game;
+        }
+
+    //get game tests
+
+     @Test
+    public void getGame_validInput_200Ok() throws Exception {
+
+        Game game = createTestGame();
+
+        given(gameService.getGame(anyLong(), anyString())).willReturn(game);
+
+        MockHttpServletRequestBuilder getRequest = get("/games/1")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+
+                .andExpect(jsonPath("$.gameId", is(1)))
+                .andExpect(jsonPath("$.timer", is(60)))
+                .andExpect(jsonPath("$.currentRound", is(1)))
+                .andExpect(jsonPath("$.turnStartedAt").exists())
+                .andExpect(jsonPath("$.phase", is("WRITING")))
+
+                .andExpect(jsonPath("$.writers").exists())
+                .andExpect(jsonPath("$.writers.length()").value(2))
+
+                .andExpect(jsonPath("$.writers[0].id", is(10)))
+                .andExpect(jsonPath("$.writers[0].username", is("charles")))
+                .andExpect(jsonPath("$.writers[0].turn", is(true)))
+                .andExpect(jsonPath("$.writers[0].genre", is("Fantasy")))
+                .andExpect(jsonPath("$.writers[0].text", is("Once upon a time there was a grumpy green dragon.")))
+                .andExpect(jsonPath("$.writers[0].quote", is("A mysterious quote")))
+
+                .andExpect(jsonPath("$.writers[1].id", is(11)))
+                .andExpect(jsonPath("$.writers[1].username", is("lottie")))
+                .andExpect(jsonPath("$.writers[1].turn", is(false)))
+                .andExpect(jsonPath("$.writers[1].genre", is("Sci-Fi")))
+                .andExpect(jsonPath("$.writers[1].text", is("In a distant galaxy")))
+                .andExpect(jsonPath("$.writers[1].quote", is("No pain no gain")))
+
+                .andExpect(jsonPath("$.judges").exists())
+                .andExpect(jsonPath("$.judges.length()").value(1))
+                .andExpect(jsonPath("$.judges[0].id", is(12)))
+                .andExpect(jsonPath("$.judges[0].username", is("AntonEgo")))
+                .andExpect(jsonPath("$.judges[0].insertions", is(1)))
+
+                .andExpect(jsonPath("$.story").exists())
+                .andExpect(jsonPath("$.story.storyText", is("Amazing story text.")))
+                .andExpect(jsonPath("$.story.hasWinner", is(true)))
+                .andExpect(jsonPath("$.story.winGenre", is("Fantasy")))
+                .andExpect(jsonPath("$.story.loseGenre", is("Sci-Fi")))
+                .andExpect(jsonPath("$.story.winnerUsername", is("charles")))
+                .andExpect(jsonPath("$.story.loserUsername", is("lottie")))
+
+                .andExpect(jsonPath("$.writers[0].user").doesNotExist())
+                .andExpect(jsonPath("$.judges[0].user").doesNotExist());
+
+    }
+
+    @Test
+    public void getGame_wrongState_400BadRequest() throws Exception {
+        given(gameService.getGame(anyLong(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"));
+
+        MockHttpServletRequestBuilder getRequest = get("/games/1")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void getGame_invalidToken_401Unauthorized() throws Exception {
+        given(gameService.getGame(anyLong(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"));
+
+        MockHttpServletRequestBuilder getRequest = get("/games/1")
+                .header("Authorization", "Bearer wrong-token")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void getGame_userNotPartOfGame_403Forbidden() throws Exception {
+        given(gameService.getGame(anyLong(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "User not part of game"));
+
+        MockHttpServletRequestBuilder getRequest = get("/games/1")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void getGame_gameNotFound_404NotFound() throws Exception {
+        given(gameService.getGame(anyLong(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: A game with that id could not be found"));
+
+        MockHttpServletRequestBuilder getRequest = get("/games/999")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isNotFound());
+    }
+
+    
+    // POST /games/{gameid}/input
+
+    private String asJsonString(final Object object) {
+        try {
+            return new ObjectMapper().writeValueAsString(object);
+        } catch (JacksonException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void saveWriterInput_validInput_200Ok() throws Exception {
+        Game game = createTestGame();
+
+        GameInputDTO inputDTO = new GameInputDTO();
+        inputDTO.setPlayer(1);
+        inputDTO.setInput("I love cats");
+
+        given(gameService.insertWriterInput(anyLong(), any(), anyString(), anyString())).willReturn(game);
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/input")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(inputDTO));
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isOk())
+
+                .andExpect(jsonPath("$.gameId", is(1)))
+                .andExpect(jsonPath("$.timer", is(60)))
+                .andExpect(jsonPath("$.currentRound", is(1)))
+                .andExpect(jsonPath("$.turnStartedAt").exists())
+                .andExpect(jsonPath("$.phase", is("WRITING")))
+
+                .andExpect(jsonPath("$.writers").exists())
+                .andExpect(jsonPath("$.writers.length()").value(2))
+
+                .andExpect(jsonPath("$.writers[0].id", is(10)))
+                .andExpect(jsonPath("$.writers[0].username", is("charles")))
+                .andExpect(jsonPath("$.writers[0].turn", is(true)))
+                .andExpect(jsonPath("$.writers[0].genre", is("Fantasy")))
+                .andExpect(jsonPath("$.writers[0].text", is("Once upon a time there was a grumpy green dragon.")))
+                .andExpect(jsonPath("$.writers[0].quote", is("A mysterious quote")))
+
+                .andExpect(jsonPath("$.writers[1].id", is(11)))
+                .andExpect(jsonPath("$.writers[1].username", is("lottie")))
+                .andExpect(jsonPath("$.writers[1].turn", is(false)))
+                .andExpect(jsonPath("$.writers[1].genre", is("Sci-Fi")))
+                .andExpect(jsonPath("$.writers[1].text", is("In a distant galaxy")))
+                .andExpect(jsonPath("$.writers[1].quote", is("No pain no gain")))
+
+                .andExpect(jsonPath("$.judges").exists())
+                .andExpect(jsonPath("$.judges.length()").value(1))
+                .andExpect(jsonPath("$.judges[0].id", is(12)))
+                .andExpect(jsonPath("$.judges[0].username", is("AntonEgo")))
+                .andExpect(jsonPath("$.judges[0].insertions", is(1)))
+
+                .andExpect(jsonPath("$.story").exists())
+                .andExpect(jsonPath("$.story.storyText", is("Amazing story text.")))
+                .andExpect(jsonPath("$.story.hasWinner", is(true)))
+                .andExpect(jsonPath("$.story.winGenre", is("Fantasy")))
+                .andExpect(jsonPath("$.story.loseGenre", is("Sci-Fi")))
+                .andExpect(jsonPath("$.story.winnerUsername", is("charles")))
+                .andExpect(jsonPath("$.story.loserUsername", is("lottie")))
+
+                .andExpect(jsonPath("$.writers[0].user").doesNotExist())
+                .andExpect(jsonPath("$.judges[0].user").doesNotExist());
+    }
+
+    @Test
+    public void saveWriterInput_invalidToken_401Unauthorized() throws Exception {
+        GameInputDTO inputDTO = new GameInputDTO();
+        inputDTO.setPlayer(1);
+        inputDTO.setInput("Once");
+
+        given(gameService.insertWriterInput(anyLong(), any(), anyString(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"));
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/input")
+                .header("Authorization", "Bearer wrong-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(inputDTO));
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void saveWriterInput_notAllowed_403Forbidden() throws Exception {
+        GameInputDTO inputDTO = new GameInputDTO();
+        inputDTO.setPlayer(1);
+        inputDTO.setInput("Once");
+
+        given(gameService.insertWriterInput(anyLong(), any(), anyString(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "It's not this writers turn!"));
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/input")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(inputDTO));
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void saveWriterInput_gameNotFound_404NotFound() throws Exception {
+        GameInputDTO inputDTO = new GameInputDTO();
+        inputDTO.setPlayer(1);
+        inputDTO.setInput("Once");
+
+        given(gameService.insertWriterInput(anyLong(), any(), anyString(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: A game with that id could not be found"));
+
+        MockHttpServletRequestBuilder postRequest = post("/games/999/input")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(inputDTO));
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void saveWriterInput_wrongState_409Conflict() throws Exception {
+        GameInputDTO inputDTO = new GameInputDTO();
+        inputDTO.setPlayer(1);
+        inputDTO.setInput("Once");
+
+        given(gameService.insertWriterInput(anyLong(), any(), anyString(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Users may not write anymore"));
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/input")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(inputDTO));
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isConflict());
+    }
+
+  
+    // POST /games/{gameid}/draft
+   
+
+        @Test
+        public void saveWriterDraft_validInput_200Ok() throws Exception {
+                Game game = createTestGame();
+                game.getWriters().get(0).setText("Draft text");
+
+                GameInputDTO inputDTO = new GameInputDTO();
+                inputDTO.setPlayer(1);
+                inputDTO.setInput("Draft text");
+
+                given(gameService.saveWriterDraft(anyLong(), anyString(), anyString())).willReturn(game);
+
+                MockHttpServletRequestBuilder postRequest = post("/games/1/draft")
+                        .header("Authorization", "Bearer token123")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(inputDTO));
+
+                mockMvc.perform(postRequest)
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.gameId", is(1)))
+                        .andExpect(jsonPath("$.writers").exists())
+                        .andExpect(jsonPath("$.writers.length()").value(2))
+                        .andExpect(jsonPath("$.writers[0].text", is("Draft text")))
+                        .andExpect(jsonPath("$.writers[1].text", is("In a distant galaxy")));
+        }
+
+    @Test
+    public void saveWriterDraft_gameNotFound_404NotFound() throws Exception {
+        GameInputDTO inputDTO = new GameInputDTO();
+        inputDTO.setInput("Draft text");
+
+        given(gameService.saveWriterDraft(anyLong(), anyString(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: A game with that id could not be found"));
+
+        MockHttpServletRequestBuilder postRequest = post("/games/999/draft")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(inputDTO));
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isNotFound());
+    }
+
+    
+    // POST /games/{gameid}/leave
+
+
+    @Test
+    public void exitGame_validInput_200Ok() throws Exception {
+        doNothing().when(gameService).exitGame(anyLong(), anyString());
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/leave")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void exitGame_invalidToken_401Unauthorized() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token"))
+                .when(gameService).exitGame(anyLong(), anyString());
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/leave")
+                .header("Authorization", "Bearer wrong-token")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void exitGame_userNotPartOfGame_403Forbidden() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "User not part of game"))
+                .when(gameService).exitGame(anyLong(), anyString());
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/leave")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void exitGame_gameNotFound_404NotFound() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: A game with that id could not be found"))
+                .when(gameService).exitGame(anyLong(), anyString());
+
+        MockHttpServletRequestBuilder postRequest = post("/games/999/leave")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isNotFound());
+    }
+
 }
