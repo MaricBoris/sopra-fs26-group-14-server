@@ -22,7 +22,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-
+    String bearer="Bearer ";
     UserController(UserService userService) {
         this.userService = userService;
     }
@@ -80,7 +80,7 @@ public class UserController {
         User foundUserId = userService.findUserFromId(id);
 
         String token = authHeader;
-        if (token != null && token.startsWith("Bearer ")) {
+        if (token != null && token.startsWith(bearer)) {
             token = token.substring(7);
         }
 
@@ -123,12 +123,11 @@ public class UserController {
     @ResponseBody
     public List<StoryGetDTO> getAllStories(@RequestHeader(value = "Authorization", required = false) String bearerToken) {
         String token = bearerToken;
-        if (token != null && token.startsWith("Bearer ")) {
+        if (token != null && token.startsWith(bearer)) {
             token = token.substring(7);
         }
         userService.findUserFromToken(token);
-        List<StoryGetDTO> results = userService.findAllStories();
-        return results;
+        return userService.findAllStories();
     }
 
     @GetMapping("/results/story/{storyId}")
@@ -137,7 +136,7 @@ public class UserController {
     public StoryGetDTO getStoryById(@PathVariable Long storyId,
                                     @RequestHeader("Authorization") String bearerToken) {
         String token = bearerToken;
-        if (token != null && token.startsWith("Bearer ")) {
+        if (token != null && token.startsWith(bearer)) {
             token = token.substring(7);
         }
         userService.findUserFromToken(token);

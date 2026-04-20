@@ -11,7 +11,7 @@ import java.util.List;
 @Table(name = "GAME")
 public class Game implements Serializable {
 
-    public static final int MAX_ROUNDS = 6;
+    public static final int MAX_ROUNDS = 20;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -79,9 +79,12 @@ public class Game implements Serializable {
         }
 
         if (currentRound > MAX_ROUNDS) {
+            setCurrentRound(MAX_ROUNDS);
             setPhase(GamePhase.EVALUATION);
+            setTurnStartedAt(System.currentTimeMillis());
+            setTimer(90L); 
         }
-}
+    }
     
 
     public Story getStory() { return story; }
