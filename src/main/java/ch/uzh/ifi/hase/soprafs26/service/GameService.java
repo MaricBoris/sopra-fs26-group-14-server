@@ -1,5 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
+import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
@@ -20,7 +22,7 @@ import java.util.HashMap;
 public class GameService {
 
     private final GameRepository gameRepository;
-
+    private final StoryRepository storyRepository;
     private final UserRepository userRepository;
     private final UserService userService;
 
@@ -28,8 +30,9 @@ public class GameService {
     private final QuoteService quoteService;
 
     @Autowired
-    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, QuoteService quoteService, GameCleanupService gameCleanupService) {
+    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, StoryRepository storyRepository, QuoteService quoteService, GameCleanupService gameCleanupService) {
         this.gameRepository = gameRepository;
+        this.storyRepository = storyRepository;
         this.userService = userService;
         this.userRepository=userRepository;
         this.quoteService = quoteService;
@@ -60,7 +63,17 @@ public class GameService {
         }
        
         
-        /*for (Writer writer : playedGame.getWriters()) {
+        //checkIfPlayerDisconnected(playedGame, timeoutMillis, now);
+        if (playedGame.getWriters().size()!=2 || playedGame.getJudges().size()!=1 ){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"); //Check 400
+        }
+        resolveExpiredTurnIfNeeded(playedGame);
+        gameRepository.saveAndFlush(playedGame);
+        return playedGame;
+    }
+
+    private void checkIfPlayerDisconnected(Game playedGame, Long timeoutMillis, Long now){
+        for (Writer writer : playedGame.getWriters()) {
             if (now - writer.getLastSeenAt() > timeoutMillis) {
                 gameCleanupService.deleteGameAndFlush(playedGame); //we need to outsource this because of transactional that would rollback the whole thing after the exception
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game ended because a writer disconnected");
@@ -82,15 +95,8 @@ public class GameService {
             else{
                 gameRepository.save(playedGame);
             }
-        }*/
-        if (playedGame.getWriters().size()!=2 || playedGame.getJudges().size()!=1 ){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"); //Check 400
         }
-        resolveExpiredTurnIfNeeded(playedGame);
-        gameRepository.saveAndFlush(playedGame);
-        return playedGame;
     }
-
     private void resolveExpiredTurnIfNeeded(Game playedGame) {
         if (playedGame == null) return;
         if (playedGame.getPhase() != GamePhase.WRITING) return;
@@ -162,6 +168,10 @@ public class GameService {
         }
 
         String prettyInput = (inputText == null) ? "" : inputText.trim();
+
+        if (prettyInput.length()>2000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Input is too long!");
+        }
 
         Story story = playedGame.getStory();
         if (story == null) {
@@ -296,6 +306,9 @@ public class GameService {
     }
 
     public synchronized void addVote(Game currentGame, Writer voted, Judge judge) {
+        if (voted.getId() == null){
+            return;
+        }
         gameVotes.computeIfAbsent(currentGame.getId(), k -> new HashMap<>()).put(judge, voted);
     }
 
@@ -348,7 +361,7 @@ public class GameService {
     public Writer findWriterFromId(Long id, Game currentGame){
         String baseErrorMessage = "Error: You are not allowed to vote for a non writer.";
         for (Writer writer : currentGame.getWriters()){
-            if(writer.getId().equals(id)){
+            if(writer.getUser().getId().equals(id)){
                 return writer;
             }
         }  
@@ -403,12 +416,16 @@ public class GameService {
         for (Judge judge : currentGame.getJudges()) {
             judgeUsers.add(judge.getUser());
         }
-
+        Story oldStory = currentGame.getStory();
         Story newStory = new Story (winner.getUser(), loser.getUser(), currentGame.getStory().getStoryText(), hasWinner, winner.getGenre(), loser.getGenre(), judgeUsers);
 
         currentGame.setStory(newStory);
 
         gameRepository.save(currentGame);
+
+        if (oldStory != null) {
+            storyRepository.delete(oldStory);
+        }
 
         return newStory;
     }
@@ -470,5 +487,7 @@ public class GameService {
         gameRepository.saveAndFlush(playedGame);
         return playedGame;
     }
+
+
 }
 
