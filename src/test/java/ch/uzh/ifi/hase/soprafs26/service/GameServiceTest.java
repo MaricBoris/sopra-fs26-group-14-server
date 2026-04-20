@@ -802,68 +802,6 @@ public class GameServiceTest {
         assertTrue(gameService.allJudgesVoted(game));
     }
 
-    // ==================== exitGame ====================
-
-    @Test
-    void exitGame_removesWriter_deletesGame() {
-        User user = new User();
-        user.setId(10L);
-        User otherWriterUser = new User();
-        otherWriterUser.setId(20L);
-        Writer writer = new Writer(user);
-        Writer otherWriter = new Writer(otherWriterUser);
-        Judge judge = new Judge(new User());
-        judge.getUser().setId(30L);
-        Game game = createGameWith(List.of(writer, otherWriter), List.of(judge));
-        mockExitDependencies(game, user);
-
-        gameService.exitGame(1L, "Bearer token");
-
-        assertFalse(game.getWriters().contains(writer));
-        verify(gameRepository).delete(game);
-        verify(gameRepository).flush();
-        verify(gameRepository, never()).save(any());
-    }
-
-    @Test
-    void exitGame_removesJudge_deletesIfNoJudgeLeft() {
-        User user = new User();
-        user.setId(20L);
-
-        Writer writer1 = new Writer(new User());
-        writer1.getUser().setId(11L);
-        Writer writer2 = new Writer(new User());
-        writer2.getUser().setId(12L);
-
-        Judge judge = new Judge(user);
-
-        Game game = createGameWith(List.of(writer1, writer2), List.of(judge));
-        mockExitDependencies(game, user);
-
-        gameService.exitGame(1L, "Bearer token");
-
-        assertTrue(game.getJudges().isEmpty());
-        verify(gameRepository).delete(game);
-        verify(gameRepository).flush();
-    }
-
-    @Test
-    void exitGame_userNotInGame_throws403() {
-        User outsider = new User();
-        outsider.setId(99L);
-
-        Writer writer = new Writer(new User());
-        writer.getUser().setId(1L);
-        Judge judge = new Judge(new User());
-        judge.getUser().setId(2L);
-
-        Game game = createGameWith(List.of(writer), List.of(judge));
-        mockExitDependencies(game, outsider);
-
-        assertThrows(ResponseStatusException.class,
-                () -> gameService.exitGame(1L, "Bearer token"));
-    }
-
     // ==================== assignQuote ====================
 
     @Test
@@ -898,5 +836,91 @@ public class GameServiceTest {
         when(quoteService.fetchRandomQuote()).thenReturn(null);
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> gameService.assignQuote(1L, 1, "Bearer token"));
         assertEquals(HttpStatus.BAD_GATEWAY, ex.getStatusCode());
+    }
+
+    // ==================== getGame with bearer token ====================
+
+    @Test
+    void getGame_userIsWriter_updatesLastSeenAndReturns() {
+        User user = user(10L);
+        Writer writer = new Writer(user);
+        Judge judge = judge(20L);
+        Game game = createGameWith(List.of(writer, writer(30L)), List.of(judge));
+        game.setPhase(GamePhase.WRITING);
+        game.setTurnStartedAt(System.currentTimeMillis());
+        game.setTimer(90L);
+        game.setRoundResolved(false);
+
+        mockExitDependencies(game, user);
+        when(gameRepository.saveAndFlush(any())).thenReturn(game);
+
+        Game result = gameService.getGame(1L, "Bearer token");
+
+        assertNotNull(writer.getLastSeenAt());
+        assertEquals(game, result);
+        verify(gameRepository).saveAndFlush(game);
+    }
+
+    @Test
+    void getGame_userIsJudge_updatesLastSeenAndReturns() {
+        User user = user(20L);
+        Judge judge = new Judge(user);
+        Writer writer1 = writer(10L);
+        Writer writer2 = writer(30L);
+        Game game = createGameWith(List.of(writer1, writer2), List.of(judge));
+        game.setPhase(GamePhase.WRITING);
+        game.setTurnStartedAt(System.currentTimeMillis());
+        game.setTimer(90L);
+        game.setRoundResolved(false);
+
+        mockExitDependencies(game, user);
+        when(gameRepository.saveAndFlush(any())).thenReturn(game);
+
+        Game result = gameService.getGame(1L, "Bearer token");
+
+        assertNotNull(judge.getLastSeenAt());
+        assertEquals(game, result);
+        verify(gameRepository).saveAndFlush(game);
+    }
+
+    @Test
+    void getGame_userNotPartOfGame_throws403() {
+        User outsider = user(99L);
+        Writer writer = writer(10L);
+        Judge judge = judge(20L);
+        Game game = createGameWith(List.of(writer, writer(30L)), List.of(judge));
+        mockExitDependencies(game, outsider);
+
+        assertThrows(ResponseStatusException.class, () -> gameService.getGame(1L, "Bearer token"));
+    }
+
+    @Test
+    void getGame_invalidGameState_throws400() {
+        User user = user(10L);
+        Writer writer = new Writer(user);
+        Game game = createGameWith(List.of(writer), List.of(judge(20L)));
+        mockExitDependencies(game, user);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,() -> gameService.getGame(1L, "Bearer token"));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void getGame_expiredTurn_clearsTextAndAdvancesTurn() {
+        User user = user(10L);
+        Writer w1 = new Writer(user); w1.setTurn(true); w1.setText("draft");
+        Writer w2 = writer(20L);
+        Game game = createGameWith(List.of(w1, w2), List.of(judge(30L)));
+        game.setPhase(GamePhase.WRITING);
+        game.setTurnStartedAt(System.currentTimeMillis() - 100000L);
+        game.setTimer(90L);
+        mockExitDependencies(game, user);
+        when(gameRepository.saveAndFlush(any())).thenReturn(game);
+
+        gameService.getGame(1L, "Bearer token");
+
+        assertEquals("", w1.getText());
+        assertFalse(w1.getTurn());
+        assertTrue(w2.getTurn());
     }
 }
