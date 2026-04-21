@@ -1019,6 +1019,46 @@ public class GameServiceTest {
     }
 
     @Test
+    public void insertWriterInput_phaseNotWriting_throws409() {
+        Writer activeWriter = makeActiveWriter(11L, 1L, "draft", "Fantasy");
+        Writer otherWriter = makeOtherWriter(12L, 2L, "draft", "Sci-Fi");
+        Judge judge = new Judge(makeUser(3L));
+        judge.setId(13L);
+
+        Game game = makeGame(activeWriter, otherWriter, judge);
+        game.setPhase(GamePhase.EVALUATION);
+        game.setStory(new Story());
+
+        User activeUser = makeUser(1L);
+        when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("active-token")).thenReturn(activeUser);
+
+        assertThrows(ResponseStatusException.class,
+                () -> gameService.insertWriterInput(1L, 1, "text", "Bearer active-token"));
+    }
+
+    @Test
+    public void insertWriterInput_roundAlreadyResolved_throws409() {
+        Writer activeWriter = makeActiveWriter(11L, 1L, "draft", "Fantasy");
+        Writer otherWriter = makeOtherWriter(12L, 2L, "draft", "Sci-Fi");
+        Judge judge = new Judge(makeUser(3L));
+        judge.setId(13L);
+
+        Game game = makeGame(activeWriter, otherWriter, judge);
+        game.setRoundResolved(true);
+        game.setStory(new Story());
+
+        User activeUser = makeUser(1L);
+        when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("active-token")).thenReturn(activeUser);
+
+        assertThrows(ResponseStatusException.class,
+                () -> gameService.insertWriterInput(1L, 1, "text", "Bearer active-token"));
+    }
+
+    @Test
     public void getGame_expiredTurn_autoSubmitsEmptyRound_switchesTurn_resetsTimerAndPersists() {
         Writer activeWriter = makeActiveWriter(11L, 1L, "draft that should be cleared on timeout", "Fantasy");
         Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
