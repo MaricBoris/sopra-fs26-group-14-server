@@ -6,6 +6,7 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.user.JudgeGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.WriterGetDTO;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
+import ch.uzh.ifi.hase.soprafs26.service.GameStreamService;
 import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -50,6 +51,9 @@ public class GameControllerTest {
 
     @MockitoBean
     private GameService gameService;
+
+    @MockitoBean
+    private GameStreamService gameStreamService;
 
     @Test
     public void vote_validInput_200Ok() throws Exception {
