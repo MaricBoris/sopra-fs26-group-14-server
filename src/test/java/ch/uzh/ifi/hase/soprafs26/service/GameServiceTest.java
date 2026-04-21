@@ -974,6 +974,51 @@ public class GameServiceTest {
     }
 
     @Test
+    public void insertWriterInput_nullStory_createsNewStory() {
+        Writer activeWriter = makeActiveWriter(11L, 1L, "draft", "Fantasy");
+        Writer otherWriter = makeOtherWriter(12L, 2L, "draft", "Sci-Fi");
+        Judge judge = new Judge(makeUser(3L));
+        judge.setId(13L);
+
+        Game game = makeGame(activeWriter, otherWriter, judge);
+        game.setStory(null); // null story
+
+        User activeUser = makeUser(1L);
+        when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("active-token")).thenReturn(activeUser);
+        when(gameRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Game result = gameService.insertWriterInput(1L, 1, "first sentence", "Bearer active-token");
+
+        assertNotNull(result.getStory());
+        assertEquals("first sentence", result.getStory().getStoryText());
+    }
+
+    @Test
+    public void insertWriterInput_blankStory_setsTextDirectly() {
+        Writer activeWriter = makeActiveWriter(11L, 1L, "draft", "Fantasy");
+        Writer otherWriter = makeOtherWriter(12L, 2L, "draft", "Sci-Fi");
+        Judge judge = new Judge(makeUser(3L));
+        judge.setId(13L);
+
+        Game game = makeGame(activeWriter, otherWriter, judge);
+        Story story = new Story();
+        story.setStoryText(""); // blank story
+        game.setStory(story);
+
+        User activeUser = makeUser(1L);
+        when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("active-token")).thenReturn(activeUser);
+        when(gameRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Game result = gameService.insertWriterInput(1L, 1, "first sentence", "Bearer active-token");
+
+        assertEquals("first sentence", result.getStory().getStoryText());
+    }
+
+    @Test
     public void getGame_expiredTurn_autoSubmitsEmptyRound_switchesTurn_resetsTimerAndPersists() {
         Writer activeWriter = makeActiveWriter(11L, 1L, "draft that should be cleared on timeout", "Fantasy");
         Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
