@@ -27,6 +27,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -621,5 +623,21 @@ public class GameControllerTest {
         mockMvc.perform(postRequest)
                 .andExpect(status().isNotFound());
     }
+@Test
+public void streamGame_validInput_200Ok() throws Exception {
+    Game game = createTestGame();
+
+    given(gameService.getGame(anyLong(), anyString())).willReturn(game);
+    given(gameStreamService.addClient(anyLong())).willReturn(new SseEmitter(0L));
+
+    MockHttpServletRequestBuilder getRequest = get("/games/1/stream")
+            .param("token", "token123");
+
+    mockMvc.perform(getRequest)
+            .andExpect(status().isOk());
+
+    verify(gameService).getGame(anyLong(), anyString());
+    verify(gameStreamService).addClient(anyLong());
+}
 
 }

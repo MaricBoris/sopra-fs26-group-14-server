@@ -110,4 +110,11 @@ public class GameStreamServiceTest {
 
         assertDoesNotThrow(() -> gameStreamService.sendGameDeletedToAllClients(1L));
     }
+    @Test
+    public void sendGameToAllClients_gameWithoutId_doesNotThrow() {
+        Game game = new Game();
+        game.setId(null);
+
+        assertDoesNotThrow(() -> gameStreamService.sendGameToAllClients(game));
+    }
 }
