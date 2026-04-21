@@ -37,6 +37,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -86,6 +87,7 @@ public class GameControllerTest {
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isOk());
+        verify(gameStreamService).sendGameToAllClients(any(Game.class));
     }
 
     @Test
@@ -442,6 +444,7 @@ public class GameControllerTest {
 
                 .andExpect(jsonPath("$.writers[0].user").doesNotExist())
                 .andExpect(jsonPath("$.judges[0].user").doesNotExist());
+        verify(gameStreamService).sendGameToAllClients(any(Game.class));
     }
 
     @Test
@@ -460,6 +463,7 @@ public class GameControllerTest {
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isUnauthorized());
+        
     }
 
     @Test
@@ -576,6 +580,7 @@ public class GameControllerTest {
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isOk());
+        verify(gameStreamService).sendGameDeletedToAllClients(anyLong());
     }
 
     @Test
