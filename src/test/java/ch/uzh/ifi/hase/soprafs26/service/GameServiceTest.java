@@ -1160,6 +1160,18 @@ public class GameServiceTest {
         assertThrows(ResponseStatusException.class, () -> gameService.exitGame(1L, "Bearer token"));
     }
 
+    @Test
+    void exitGame_judgeLeaves_success() {
+        User user = user(10L);
+        Judge judge = new Judge(user);
+        Game game = createGameWith(List.of(writer(20L), writer(30L)), List.of(judge));
+        mockExitDependencies(game, user);
+
+        gameService.exitGame(1L, "Bearer token");
+
+        verify(gameRepository).delete(game);
+    }
+
     // ==================== saveWriterDraft tests ====================
     @Test
     void saveWriterDraft_success() {
@@ -1206,4 +1218,31 @@ public class GameServiceTest {
         String longInput = "a".repeat(201);
         assertThrows(ResponseStatusException.class, () -> gameService.saveWriterDraft(1L, longInput, "Bearer token"));
     }
+
+    // ==================== getGameForUser tests ====================
+    @Test
+    void getGameForUser_userIsWriter_returnsGame() {
+        User user = user(10L);
+        Writer writer = new Writer(user);
+        Game game = createGameWith(List.of(writer, writer(20L)), List.of(judge(30L)));
+        when(userService.extractToken(any())).thenReturn("token");
+        when(userService.findUserFromToken("token")).thenReturn(user);
+        when(gameRepository.findAll()).thenReturn(List.of(game));
+
+        Game result = gameService.getGameForUser("Bearer token");
+
+        assertEquals(game, result);
+    }
+
+    @Test
+    void getGameForUser_noGame_throws404() {
+        User user = user(10L);
+        when(userService.extractToken(any())).thenReturn("token");
+        when(userService.findUserFromToken("token")).thenReturn(user);
+        when(gameRepository.findAll()).thenReturn(List.of());
+
+        assertThrows(ResponseStatusException.class, () -> gameService.getGameForUser("Bearer token"));
+    }
+
+
 }
