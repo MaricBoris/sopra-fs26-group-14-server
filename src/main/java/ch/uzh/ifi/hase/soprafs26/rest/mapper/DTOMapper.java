@@ -54,6 +54,7 @@ public interface DTOMapper {
     @Mapping(source = "genre", target = "genre")
     @Mapping(source = "text", target = "text")
     @Mapping(source = "quote", target = "quote")
+    @Mapping(source = "quoteAssignedRound", target = "quoteAssignedRound")
     WriterGetDTO convertEntityToWriterGetDTO(Writer writer);
 
     @Mapping(source = "user.id", target = "id")
