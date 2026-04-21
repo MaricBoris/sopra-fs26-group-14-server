@@ -191,19 +191,8 @@ public class RoomService {
         }
 
         Game game = new Game();
-        List<Writer> gameWriters = new ArrayList<>();
-        for (Writer roomWriter : room.getWriters()) {
-            Writer gameWriter = new Writer(roomWriter.getUser());
-            gameWriter.setGenre(roomWriter.getGenre());
-            gameWriters.add(gameWriter);
-        }
-        game.setWriters(gameWriters);
-
-        List<Judge> gameJudges = new ArrayList<>();
-        for (Judge roomJudge : room.getJudges()) {
-            gameJudges.add(new Judge(roomJudge.getUser()));
-        }
-        game.setJudges(gameJudges);
+        game.setWriters(new ArrayList<>(room.getWriters()));
+        game.setJudges(new ArrayList<>(room.getJudges()));
 
         game.setPhase(GamePhase.WRITING);
         game.setCurrentRound(1);
@@ -229,13 +218,13 @@ public class RoomService {
         Story story = new Story();
         game.setStory(story);
 
+        game = gameRepository.save(game);
+
         room.getWriters().clear();
         room.getJudges().clear();
         room.getUsers().clear();
         roomRepository.delete(room);
         roomRepository.flush();
-
-        game = gameRepository.save(game);
 
         return game;
     }
