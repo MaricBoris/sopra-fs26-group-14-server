@@ -482,7 +482,15 @@ public class GameService {
         }
 
         Writer targetWriter = playedGame.getWriters().get(player - 1);
+        if (targetWriter.getQuote() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Quote already assigned to this writer");
+        }
         targetWriter.setQuote(quote);
+        int assignedRound = playedGame.getCurrentRound();
+        if (!targetWriter.getTurn()) {
+            assignedRound += 1;
+        }
+        targetWriter.setQuoteAssignedRound(assignedRound);
 
         gameRepository.saveAndFlush(playedGame);
         return playedGame;
