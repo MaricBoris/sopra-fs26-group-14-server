@@ -30,6 +30,9 @@ public class Writer implements Serializable {
     @Column(columnDefinition = "TEXT")
     private String quote;
 
+    @Column
+    private Integer quoteAssignedRound;
+
 
     public Writer() {}
     public Writer(User user) { this.user = user; }
@@ -54,4 +57,7 @@ public class Writer implements Serializable {
 
     public String getQuote() { return quote; }
     public void setQuote(String quote) { this.quote = quote; }
+
+    public Integer getQuoteAssignedRound() { return quoteAssignedRound; }
+    public void setQuoteAssignedRound(Integer quoteAssignedRound) { this.quoteAssignedRound = quoteAssignedRound; }
 }
