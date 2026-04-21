@@ -1137,4 +1137,73 @@ public class GameServiceTest {
         assertFalse(w1.getTurn());
         assertTrue(w2.getTurn());
     }
+
+    // ==================== exitGame ====================
+    @Test
+    void exitGame_writerLeaves_success() {
+        User user = user(10L);
+        Writer writer = new Writer(user);
+        Game game = createGameWith(List.of(writer, writer(20L)), List.of(judge(30L)));
+        mockExitDependencies(game, user);
+
+        gameService.exitGame(1L, "Bearer token");
+
+        verify(gameRepository).delete(game);
+    }
+
+    @Test
+    void exitGame_userNotInGame_throws403() {
+        User outsider = user(99L);
+        Game game = createGameWith(List.of(writer(10L), writer(20L)), List.of(judge(30L)));
+        mockExitDependencies(game, outsider);
+
+        assertThrows(ResponseStatusException.class, () -> gameService.exitGame(1L, "Bearer token"));
+    }
+
+    // ==================== saveWriterDraft tests ====================
+    @Test
+    void saveWriterDraft_success() {
+        User user = user(10L);
+        Writer writer = new Writer(user);
+        writer.setTurn(true);
+        Game game = createGameWith(List.of(writer, writer(20L)), List.of(judge(30L)));
+        mockExitDependencies(game, user);
+        when(gameRepository.save(any())).thenReturn(game);
+
+        gameService.saveWriterDraft(1L, "hello", "Bearer token");
+
+        assertEquals("hello", writer.getText());
+    }
+
+    @Test
+    void saveWriterDraft_notWritersTurn_throws403() {
+        User user = user(10L);
+        Writer writer = new Writer(user);
+        writer.setTurn(false);
+        Game game = createGameWith(List.of(writer, writer(20L)), List.of(judge(30L)));
+        mockExitDependencies(game, user);
+
+        assertThrows(ResponseStatusException.class, () -> gameService.saveWriterDraft(1L, "hello", "Bearer token"));
+    }
+
+    @Test
+    void saveWriterDraft_userNotWriter_throws403() {
+        User user = user(99L);
+        Game game = createGameWith(List.of(writer(10L), writer(20L)), List.of(judge(30L)));
+        mockExitDependencies(game, user);
+
+        assertThrows(ResponseStatusException.class, () -> gameService.saveWriterDraft(1L, "hello", "Bearer token"));
+    }
+
+    @Test
+    void saveWriterDraft_inputTooLong_throws400() {
+        User user = user(10L);
+        Writer writer = new Writer(user);
+        writer.setTurn(true);
+        Game game = createGameWith(List.of(writer, writer(20L)), List.of(judge(30L)));
+        mockExitDependencies(game, user);
+
+        String longInput = "a".repeat(201);
+        assertThrows(ResponseStatusException.class, () -> gameService.saveWriterDraft(1L, longInput, "Bearer token"));
+    }
 }
