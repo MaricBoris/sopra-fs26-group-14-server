@@ -6,6 +6,7 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.user.JudgeGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.WriterGetDTO;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
+import ch.uzh.ifi.hase.soprafs26.service.GameStreamService;
 import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -26,6 +27,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
@@ -36,8 +38,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +54,9 @@ public class GameControllerTest {
 
     @MockitoBean
     private GameService gameService;
+
+    @MockitoBean
+    private GameStreamService gameStreamService;
 
     @Test
     public void vote_validInput_200Ok() throws Exception {
@@ -82,6 +89,7 @@ public class GameControllerTest {
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isOk());
+        verify(gameStreamService).sendGameToAllClients(any(Game.class));
     }
 
     @Test
@@ -438,6 +446,7 @@ public class GameControllerTest {
 
                 .andExpect(jsonPath("$.writers[0].user").doesNotExist())
                 .andExpect(jsonPath("$.judges[0].user").doesNotExist());
+        verify(gameStreamService).sendGameToAllClients(any(Game.class));
     }
 
     @Test
@@ -456,6 +465,7 @@ public class GameControllerTest {
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isUnauthorized());
+        
     }
 
     @Test
@@ -572,6 +582,7 @@ public class GameControllerTest {
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isOk());
+        verify(gameStreamService).sendGameDeletedToAllClients(anyLong());
     }
 
     @Test
@@ -612,5 +623,21 @@ public class GameControllerTest {
         mockMvc.perform(postRequest)
                 .andExpect(status().isNotFound());
     }
+@Test
+public void streamGame_validInput_200Ok() throws Exception {
+    Game game = createTestGame();
+
+    given(gameService.getGame(anyLong(), anyString())).willReturn(game);
+    given(gameStreamService.addClient(anyLong())).willReturn(new SseEmitter(0L));
+
+    MockHttpServletRequestBuilder getRequest = get("/games/1/stream")
+            .param("token", "token123");
+
+    mockMvc.perform(getRequest)
+            .andExpect(status().isOk());
+
+    verify(gameService).getGame(anyLong(), anyString());
+    verify(gameStreamService).addClient(anyLong());
+}
 
 }
