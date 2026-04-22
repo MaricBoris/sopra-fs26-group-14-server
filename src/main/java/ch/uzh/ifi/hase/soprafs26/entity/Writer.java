@@ -22,6 +22,9 @@ public class Writer implements Serializable {
     private String genre;
 
     @Column(columnDefinition = "TEXT")
+    private String genreDescription;
+
+    @Column(columnDefinition = "TEXT")
     private String text;
 
     @Column(nullable = false)
@@ -48,6 +51,9 @@ public class Writer implements Serializable {
 
     public String getGenre() { return genre; }
     public void setGenre(String genre) { this.genre = genre; }
+
+    public String getGenreDescription() { return genreDescription; }
+    public void setGenreDescription(String genreDescription) { this.genreDescription = genreDescription; }
 
     public String getText() { return text; }
     public void setText(String text) { this.text = text; }

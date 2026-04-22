@@ -16,6 +16,7 @@ import java.security.SecureRandom;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 @Service
@@ -200,10 +201,37 @@ public class RoomService {
         game.setTimer(90L);
         game.setTurnStartedAt(System.currentTimeMillis());
         game.setRoundResolved(false);
-        List<String> genrePool = new ArrayList<>(List.of("Horror", "Comedy", "Sci-Fi", "Fantasy"));
-        Collections.shuffle(genrePool);
-        game.getWriters().get(0).setGenre(genrePool.get(0));
-        game.getWriters().get(1).setGenre(genrePool.get(1));
+
+        LinkedHashMap<String, String> darkGenres = new LinkedHashMap<>();
+        darkGenres.put("Horror", "Scary and threatening.");
+        darkGenres.put("Drama", "Serious emotions and conflict.");
+        darkGenres.put("Thriller", "Tension, danger, urgency.");
+        darkGenres.put("Tragedy", "Things go wrong and don't end well.");
+        darkGenres.put("Dystopian Sci-Fi", "A broken, oppressive future.");
+        darkGenres.put("Survival", "Characters struggle to stay alive.");
+        darkGenres.put("Crime", "Something illegal or morally wrong happens.");
+        darkGenres.put("Psychological", "Fear, paranoia or unstable reality.");
+        darkGenres.put("Dark Fantasy", "Magic world, but dangerous, cruel or corrupted.");
+
+        LinkedHashMap<String, String> lightGenres = new LinkedHashMap<>();
+        lightGenres.put("Comedy", "Funny, happy situations.");
+        lightGenres.put("Love Story", "Romance");
+        lightGenres.put("Utopian Sci-Fi", "A perfect or ideal future.");
+        lightGenres.put("Fairy Tale", "Magical and hopeful.");
+        lightGenres.put("Kids / Disney Fantasy", "Magical world that is colorful, safe and positive.");
+
+        List<String> darkNames = new ArrayList<>(darkGenres.keySet());
+        List<String> lightNames = new ArrayList<>(lightGenres.keySet());
+        Collections.shuffle(darkNames);
+        Collections.shuffle(lightNames);
+        boolean firstWriterDark = secureRandom.nextBoolean();
+        String genre1 = (firstWriterDark ? darkNames : lightNames).get(0);
+        String genre2 = (firstWriterDark ? lightNames : darkNames).get(0);
+        game.getWriters().get(0).setGenre(genre1);
+        game.getWriters().get(0).setGenreDescription(firstWriterDark ? darkGenres.get(genre1) : lightGenres.get(genre1));
+        game.getWriters().get(1).setGenre(genre2);
+        game.getWriters().get(1).setGenreDescription(firstWriterDark ? lightGenres.get(genre2) : darkGenres.get(genre2));
+        
         boolean firstWriterStarts = secureRandom.nextBoolean();
         game.getWriters().get(0).setTurn(firstWriterStarts);
         game.getWriters().get(1).setTurn(!firstWriterStarts);
