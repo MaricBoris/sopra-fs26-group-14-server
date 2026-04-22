@@ -7,9 +7,11 @@ import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,18 +27,23 @@ public class GameService {
     private final StoryRepository storyRepository;
     private final UserRepository userRepository;
     private final UserService userService;
-
+    private final GameStreamService gameStreamService;
     private final GameCleanupService gameCleanupService;
     private final QuoteService quoteService;
 
+    
+    private final List<String> abbreviations = new ArrayList<>(List.of( "z.b", "bzw", "usw", "etc", "d.h", "u.a", "ca", "vgl",
+    "dr", "prof", "hr", "fr", "nr", "bspw", "evtl", "ggf", "inkl", "jr", "sr", "st", "mio", "mrd", "mr", "mrs", "ms", "vs", "e.g", "i.e"));
+
     @Autowired
-    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, StoryRepository storyRepository, QuoteService quoteService, GameCleanupService gameCleanupService) {
+    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, StoryRepository storyRepository, QuoteService quoteService, GameCleanupService gameCleanupService, GameStreamService gameStreamService) {
         this.gameRepository = gameRepository;
         this.storyRepository = storyRepository;
         this.userService = userService;
         this.userRepository=userRepository;
         this.quoteService = quoteService;
         this.gameCleanupService = gameCleanupService;
+        this.gameStreamService = gameStreamService;
     }
 
     public Game getGame(Long id, String bearerToken) {
@@ -97,19 +104,101 @@ public class GameService {
             }
         }
     }
+      
+    private String truncateToLastSentence(String input) {
+        if (input == null) return "";
+        String trimmedInput = input.trim();
+        if (trimmedInput.isEmpty()) return "";
+
+        //go through the characters from end to beginning to search for the last proper sentence ending 
+        int i = trimmedInput.length() - 1;
+        while (i >= 0) {
+
+            char c = trimmedInput.charAt(i);
+
+            if (c == '!' || c == '?') {
+                return trimmedInput.substring(0, i + 1).trim();
+            }
+
+            if (c == '.') {
+
+                //check for a ... ending
+                if (i >= 2 && trimmedInput.charAt(i - 1) == '.' && trimmedInput.charAt(i - 2) == '.') {
+                    return trimmedInput.substring(0, i + 1).trim();
+                }
+
+                // if theres a letter before and right after the ., were gonna consider it part of an abbreviation and not a sentence ending
+                boolean beforeIsLetter = (i > 0) && Character.isLetter(trimmedInput.charAt(i - 1));
+                boolean afterIsLetter = (i < (trimmedInput.length() - 1)) && Character.isLetter(trimmedInput.charAt(i + 1));
+                if (beforeIsLetter && afterIsLetter) {
+                    i--;
+                    continue;
+                }
+
+                //scan for known abbreviations like Dr. or etc. 
+                int potentialAbbrevStart = i - 1;
+                while ( (potentialAbbrevStart >= 0) && (Character.isLetter(trimmedInput.charAt(potentialAbbrevStart)) || trimmedInput.charAt(potentialAbbrevStart) == '.')) {
+                    potentialAbbrevStart--;
+                }  
+                potentialAbbrevStart++; //if we would stop at >0, then we wouldn't check, if char at 0 is even a letter or .
+                String potentialAbbrev = trimmedInput.substring(potentialAbbrevStart, i).toLowerCase();
+                if (abbreviations.contains(potentialAbbrev)) {
+                    i=potentialAbbrevStart;
+                    continue;
+                }
+
+                return trimmedInput.substring(0, i + 1).trim();
+            }
+
+            i--;
+        }
+
+        //in case we did not find a potential sentence ending, we don't want to return half a sentence
+        return "";
+    }
+
+    // helper method for both manual and auto submit of writer input
+    private void addInputToStory(Game playedGame, Writer writer, String input) {
+        String clean = (input == null) ? "" : input.trim();
+
+        // enforce maximum writer input length
+        if (clean.length() > 2000) {
+            clean = clean.substring(0, 2000);
+            clean=truncateToLastSentence(clean);
+        }
+
+        Story story = playedGame.getStory();
+        if (story == null) {
+            story = new Story();
+            playedGame.setStory(story);
+        }
+
+        if (!clean.isBlank()) {
+            String currentStory = story.getStoryText();
+            if (currentStory == null || currentStory.isBlank()) {
+                story.setStoryText(clean);
+            } else {
+                story.setStoryText(currentStory + " " + clean);
+            }
+        }
+
+        writer.setText("");
+        playedGame.setRoundResolved(true);
+        playedGame.nextRound();
+    }
+
     private void resolveExpiredTurnIfNeeded(Game playedGame) {
         if (playedGame == null) return;
         if (playedGame.getPhase() != GamePhase.WRITING) return;
         if (playedGame.isRoundResolved()) return;
-        if (playedGame.getTurnStartedAt() == null || playedGame.getTimer() == null) return;
+        if ( (playedGame.getTurnStartedAt() == null) || (playedGame.getTimer() == null)) return;
 
+        //check if timer for this turn already expired
         long now = System.currentTimeMillis();
         long turnEndsAt = playedGame.getTurnStartedAt() + playedGame.getTimer() * 1000;
+        if (now < turnEndsAt) return;
 
-        if (now < turnEndsAt) {
-            return;
-        }
-
+        //search for the active writer in this game 
         Writer activeWriter = null;
         for (Writer writer : playedGame.getWriters()) {
             if (writer.getTurn()) {
@@ -117,17 +206,14 @@ public class GameService {
                 break;
             }
         }
-
         if (activeWriter == null) {
             throw new ResponseStatusException(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "No active writer found"
-            );
+                HttpStatus.INTERNAL_SERVER_ERROR, "No active writer found");
         }
-        activeWriter.setText("");
 
-        playedGame.setRoundResolved(true);
-        playedGame.nextRound();
+        // shorten writers draft to the last sentence ending
+        String inputWithProperEnding = truncateToLastSentence(activeWriter.getText());
+        addInputToStory(playedGame, activeWriter, inputWithProperEnding);
 
         gameRepository.saveAndFlush(playedGame);
     }
@@ -139,9 +225,6 @@ public class GameService {
         String token = userService.extractToken(bearerToken);
         Game playedGame = getandCheckGame(id, token);
         User requestingUser = getandCheckUser(token);
-
-        // Falls der Turn inzwischen durch Zeitablauf vorbei ist, erst serverseitig auflösen
-        resolveExpiredTurnIfNeeded(playedGame);
 
         if (playedGame.getPhase() != GamePhase.WRITING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Users may not write anymore");
@@ -169,31 +252,30 @@ public class GameService {
 
         String prettyInput = (inputText == null) ? "" : inputText.trim();
 
-        if (prettyInput.length()>2000) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Input is too long!");
-        }
-
-        Story story = playedGame.getStory();
-        if (story == null) {
-            story = new Story();
-            playedGame.setStory(story);
-        }
-
-        String currentStory = story.getStoryText();
-        if (!prettyInput.isBlank()) {
-            if (currentStory == null || currentStory.isBlank()) {
-                story.setStoryText(prettyInput);
-            } else {
-                story.setStoryText(currentStory + " " + prettyInput);
-            }
-        }
-
-        requestingWriter.setText("");
-        playedGame.setRoundResolved(true);
-        playedGame.nextRound();
-
+        addInputToStory(playedGame, requestingWriter, prettyInput);
         return gameRepository.saveAndFlush(playedGame);
     }
+
+    @Scheduled(fixedDelay = 2000) //Spring Annotation for automatically calling this every 2 seconds (2 seconds after the end of the last method call, not start) from the moment the app and spring started. 
+    public void terminateExpiredTurns() {
+        for (Game game : gameRepository.findAll()) {
+            if (game.getPhase() != GamePhase.WRITING) continue;
+
+            int currentRound = game.getCurrentRound();
+
+            try { 
+                resolveExpiredTurnIfNeeded(game); //check if timer is expired and if yes, resolve the round
+            } catch (Exception e) {
+                continue; //if something goes wrong, we just wanna skip this game but continue checking the rest of the games
+            }
+
+            //check if we had a round turn, and if yes, inform all the clients that a new round has started
+            if (game.getCurrentRound() != currentRound) {
+                gameStreamService.sendGameToAllClients(game);
+            }
+        }
+    }
+
     public void exitGame(Long id, String bearerToken) {
         String token = userService.extractToken(bearerToken);
         Game playedGame=getandCheckGame(id, token);
