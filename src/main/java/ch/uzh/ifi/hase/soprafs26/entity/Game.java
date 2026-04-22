@@ -11,7 +11,7 @@ import java.util.List;
 @Table(name = "GAME")
 public class Game implements Serializable {
 
-    public static final int MAX_ROUNDS = 20;
+    public static final int MAX_ROUNDS = 4;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
