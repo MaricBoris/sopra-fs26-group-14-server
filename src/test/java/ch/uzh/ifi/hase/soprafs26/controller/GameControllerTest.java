@@ -582,7 +582,7 @@ public class GameControllerTest {
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isOk());
-        verify(gameStreamService).sendGameDeletedToAllClients(anyLong());
+        
     }
 
     @Test

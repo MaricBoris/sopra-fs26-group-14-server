@@ -36,6 +36,9 @@ public class Story implements Serializable {
     @Column(updatable = false)
     private Date creationDate;
 
+    @Column
+    private String objective;
+
     public Story() {
         this.storyText = "";
         this.hasWinner = false;
@@ -80,4 +83,7 @@ public class Story implements Serializable {
 
     public Date getCreationDate() { return creationDate; }
     public void setCreationDate(Date creationDate) { this.creationDate = creationDate; }
+
+    public String getObjective() { return objective; }
+    public void setObjective(String objective) { this.objective = objective; }
 }
