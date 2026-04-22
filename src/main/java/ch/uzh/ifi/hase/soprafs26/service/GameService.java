@@ -172,10 +172,13 @@ public class GameService {
             story = new Story();
             playedGame.setStory(story);
         }
-
+        
+        if(story.getStoryText()==null){
+            story.setStoryText("");
+        }
         if (!clean.isBlank()) {
             String currentStory = story.getStoryText();
-            if (currentStory == null || currentStory.isBlank()) {
+            if (currentStory.isBlank()) {
                 story.setStoryText(clean);
             } else {
                 story.setStoryText(currentStory + " " + clean);
@@ -316,6 +319,7 @@ public class GameService {
         if (playedGame.getWriters().size()<2 || playedGame.getJudges().size()<1 ){
             gameRepository.delete(playedGame);
             gameRepository.flush();
+            gameStreamService.sendGameDeletedToAllClients(playedGame.getId());
         }
         else{
             gameRepository.save(playedGame);

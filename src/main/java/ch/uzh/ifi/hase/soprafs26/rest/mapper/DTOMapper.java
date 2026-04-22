@@ -77,6 +77,7 @@ public interface DTOMapper {
     @Mapping(source = "loseGenre", target = "loseGenre")
     @Mapping(source = "winner.username", target = "winnerUsername")
     @Mapping(source = "loser.username", target = "loserUsername")
+    @Mapping(source = "objective", target = "objective")
     StoryGetDTO convertEntityToStoryGetDTO(Story story);
 
     @Mapping(source = "id", target = "gameId")

@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
+import ch.uzh.ifi.hase.soprafs26.constant.ObjectivePool;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
@@ -203,7 +204,6 @@ public class RoomService {
         Collections.shuffle(genrePool);
         game.getWriters().get(0).setGenre(genrePool.get(0));
         game.getWriters().get(1).setGenre(genrePool.get(1));
-
         boolean firstWriterStarts = secureRandom.nextBoolean();
         game.getWriters().get(0).setTurn(firstWriterStarts);
         game.getWriters().get(1).setTurn(!firstWriterStarts);
@@ -216,6 +216,9 @@ public class RoomService {
             j.setLastSeenAt(now);
         }
         Story story = new Story();
+        List<String> objectivePool = new ArrayList<>(ObjectivePool.OBJECTIVES);
+        Collections.shuffle(objectivePool, secureRandom);
+        story.setObjective(objectivePool.get(0));
         game.setStory(story);
 
         game = gameRepository.save(game);

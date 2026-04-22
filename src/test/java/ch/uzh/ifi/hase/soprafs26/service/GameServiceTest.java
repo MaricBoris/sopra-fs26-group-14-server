@@ -45,6 +45,9 @@ public class GameServiceTest {
     @Mock
     private StoryRepository storyRepository;
 
+    @Mock
+    private GameStreamService gameStreamService;
+
     @InjectMocks
     private GameService gameService;
 
@@ -909,7 +912,7 @@ public class GameServiceTest {
     }
 
     @Test
-    public void insertWriterInput_inputTooLong_throws400() {
+    public void insertWriterInput_inputTooLong_truncatedTo2000() {
         Writer activeWriter = makeActiveWriter(11L, 1L, "draft from active writer", "Fantasy");
         Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
 
@@ -924,14 +927,16 @@ public class GameServiceTest {
         when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
         when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
         when(userRepository.findByToken("active-token")).thenReturn(activeUser);
+        when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         String tooLongInput = "x".repeat(2001);
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> gameService.insertWriterInput(1L, 1, tooLongInput, "Bearer active-token"));
+        Game result = gameService.insertWriterInput(1L, 1, tooLongInput, "Bearer active-token");
 
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        verify(gameRepository, never()).saveAndFlush(any(Game.class));
+        String savedText = result.getStory().getStoryText();
+
+        assertNotNull(savedText);
+        assertTrue(savedText.length() <= 2000);
     }
 
     @Test

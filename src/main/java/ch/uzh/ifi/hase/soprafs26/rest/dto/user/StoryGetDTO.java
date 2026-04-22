@@ -12,6 +12,7 @@ public class StoryGetDTO {
     private String winnerUsername;
     private String loserUsername;
     private Date creationDate;
+    private String objective;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -36,4 +37,7 @@ public class StoryGetDTO {
 
     public Date getCreationDate() { return creationDate; }
     public void setCreationDate(Date creationDate) { this.creationDate = creationDate; }
+
+    public String getObjective() { return objective; }
+    public void setObjective(String objective) { this.objective = objective; }
 }
