@@ -268,7 +268,7 @@ public class GameService {
         }
 
         requestingWriter.setText(prettyInput);
-        gameRepository.save(playedGame);
+        gameRepository.saveAndFlush(playedGame);
         return playedGame;
     }
 
