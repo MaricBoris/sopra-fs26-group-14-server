@@ -17,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -300,28 +301,17 @@ public class GameServiceTest {
 
     // ==================== addVote and allJudgesVoted ====================
 
-    @Test
-    public void addVote_noWriter() {
-        User user = new User();
-        user.setId(1L);
-
-        Judge judge = new Judge(user);
-        judge.setId(1L);
-
-        Writer writer = null;
-
+   @Test
+    public void addVote_writerIdIsNull_doesNotAddVote() {
         Game game = new Game();
         game.setId(1L);
-        game.setJudges(List.of(judge));
-
-        assertFalse(gameService.allJudgesVoted(game));
-
-        gameService.addVote(game, writer, judge);
-
-        Map<Judge, Writer> votes = gameService.getGameVotes().get(game.getId());
-        assertNull(votes);
-
         
+        Writer writer = new Writer();  // Writer exists but ID is null
+        
+        gameService.addVote(game, writer, new Judge());
+        
+        Map<Long, Map<Judge, Writer>> allVotes = gameService.getGameVotes();
+        assertFalse(allVotes.containsKey(game.getId()));
     }
 
     @Test

@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -646,7 +647,7 @@ public void streamGame_validInput_200Ok() throws Exception {
     public void vote_winnerAlreadyExists_returnsImmediately() throws Exception {
         Game game = new Game();
         Story story = new Story();
-        Writer existingWinner = new Writer();
+        User existingWinner = new User();
         story.setWinner(existingWinner);  
         game.setStory(story);
         

@@ -382,6 +382,11 @@ public class GameService {
 
     private Map<Long, Map<Judge, Writer>> gameVotes = new HashMap<>();
 
+ 
+    Map<Long, Map<Judge, Writer>> getGameVotes() {
+        return gameVotes;
+    }
+
 
     public Game getGame(Long gameId){
         String baseErrorMessage = "Error: The provided id: %s is invalid and doesn't match any game.";
