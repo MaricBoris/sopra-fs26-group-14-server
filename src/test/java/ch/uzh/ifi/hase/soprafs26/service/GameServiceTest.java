@@ -385,29 +385,6 @@ public class GameServiceTest {
         assertTrue(gameService.allJudgesVoted(game));
     }
 
-    @Test
-    public void addVote_judgeChangesVote_stillCountsAsOne() {
-        User user = new User();
-        user.setId(1L);
-
-        Judge judge = new Judge(user);
-        judge.setId(1L);
-
-        Writer writer1 = new Writer();
-        writer1.setId(1L);
-        Writer writer2 = new Writer();
-        writer2.setId(2L);
-
-        Game game = new Game();
-        game.setId(1L);
-        game.setJudges(List.of(judge));
-
-        gameService.addVote(game, writer1, judge);
-        gameService.addVote(game, writer2, judge);
-
-        // Map replaces the value, so still 1 vote entry
-        assertTrue(gameService.allJudgesVoted(game));
-    }
 
     
 

@@ -396,7 +396,10 @@ public class GameService {
 		return gameById; 
     }
 
+    public int noVote = 0;
+
     public synchronized void addVote(Game currentGame, Writer voted, Judge judge) {
+        noVote++;
         if (voted.getId() == null){
             return;
         }
@@ -404,11 +407,11 @@ public class GameService {
     }
 
     public boolean allJudgesVoted(Game currentGame) {
-        Map<Judge, Writer> votes = gameVotes.getOrDefault(currentGame.getId(), new HashMap<>());
-        return votes.size() >= currentGame.getJudges().size();
+        return noVote == currentGame.getJudges().size();
     }
 
     public void clearVotes(Game currentGame) {
+        noVote = 0;
         gameVotes.remove(currentGame.getId());
     }
 
