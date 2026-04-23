@@ -84,7 +84,7 @@ public class GameController {
             @RequestHeader(value = "Authorization", required = false) String bearerToken) {
 
         gameService.exitGame(gameid, bearerToken);
-        gameStreamService.sendGameDeletedToAllClients(gameid);
+        
     }
 
 
