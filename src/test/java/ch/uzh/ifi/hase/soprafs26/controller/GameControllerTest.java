@@ -68,6 +68,7 @@ public class GameControllerTest {
         Writer writer = new Writer();
         writer.setId(10L);
 
+        //Set up all function to behave as valid input
         given(gameService.getGame(anyLong())).willReturn(game);
         given(gameService.findWriterFromId(anyLong(), any(Game.class))).willReturn(writer);
         given(gameService.findUserFromToken(anyString())).willReturn(new User());
@@ -81,7 +82,7 @@ public class GameControllerTest {
         doNothing().when(gameService).clearVotes(any());
         doNothing().when(gameService).cleanupGame(any());
 
-        // Send a Long writerId as the request body (matching @RequestBody Long writerId)
+
         MockHttpServletRequestBuilder postRequest = post("/games/1/vote")
                 .header("Authorization", "Bearer token123")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -640,4 +641,66 @@ public void streamGame_validInput_200Ok() throws Exception {
     verify(gameStreamService).addClient(anyLong());
 }
 
+
+    @Test
+    public void vote_winnerAlreadyExists_returnsImmediately() throws Exception {
+        Game game = new Game();
+        Story story = new Story();
+        Writer existingWinner = new Writer();
+        story.setWinner(existingWinner);  
+        game.setStory(story);
+        
+        given(gameService.getGame(anyLong())).willReturn(game);
+        given(gameService.findWriterFromId(anyLong(), any(Game.class))).willReturn(new Writer());
+        given(gameService.findUserFromToken(anyString())).willReturn(new User());
+        given(gameService.getJudgeFromUser(any(), any())).willReturn(new Judge());
+        doNothing().when(gameService).checkGameIsOver(any());
+        doNothing().when(gameService).addVote(any(), any(), any());
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/vote")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("10");
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isOk());
+        
+        verify(gameService, never()).determineWinner(any());
+        verify(gameService, never()).updateStory(any(), any());
+    }
+
+    @Test
+    public void vote_waitingForOtherJudges_waitsAndReturns200() throws Exception {
+        Game game = new Game();
+        game.setId(1L);
+        Story story = new Story();
+        game.setStory(story);
+
+        Writer writer = new Writer();
+        writer.setId(10L);
+
+        given(gameService.getGame(anyLong())).willReturn(game);
+        given(gameService.findWriterFromId(anyLong(), any(Game.class))).willReturn(writer);
+        given(gameService.findUserFromToken(anyString())).willReturn(new User());
+        given(gameService.getJudgeFromUser(any(), any())).willReturn(new Judge());
+        doNothing().when(gameService).checkGameIsOver(any());
+        doNothing().when(gameService).addVote(any(), any(), any());
+
+        given(gameService.allJudgesVoted(any()))
+                .willReturn(false, false, true);  // Returns false twice, then true
+
+        given(gameService.determineWinner(any())).willReturn(writer);
+        given(gameService.updateStory(any(), any())).willReturn(new Story());
+        doNothing().when(gameService).updateHistory(any());
+        doNothing().when(gameService).clearVotes(any());
+        doNothing().when(gameService).cleanupGame(any());
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/vote")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("10");
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isOk());
+    }
 }

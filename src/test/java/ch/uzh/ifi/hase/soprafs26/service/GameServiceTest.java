@@ -301,6 +301,30 @@ public class GameServiceTest {
     // ==================== addVote and allJudgesVoted ====================
 
     @Test
+    public void addVote_noWriter() {
+        User user = new User();
+        user.setId(1L);
+
+        Judge judge = new Judge(user);
+        judge.setId(1L);
+
+        Writer writer = null;
+
+        Game game = new Game();
+        game.setId(1L);
+        game.setJudges(List.of(judge));
+
+        assertFalse(gameService.allJudgesVoted(game));
+
+        gameService.addVote(game, writer, judge);
+
+        Map<Judge, Writer> votes = gameService.getGameVotes().get(game.getId());
+        assertNull(votes);
+
+        
+    }
+
+    @Test
     public void addVote_singleJudge_allVoted() {
         User user = new User();
         user.setId(1L);
@@ -394,6 +418,8 @@ public class GameServiceTest {
         // Map replaces the value, so still 1 vote entry
         assertTrue(gameService.allJudgesVoted(game));
     }
+
+    
 
     // ==================== determineWinner ====================
 
