@@ -5,6 +5,8 @@ import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -236,20 +238,36 @@ public class RoomServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 
-    @Test
-    public void swapRole_judgeFull_400BadRequest() {
-        testRoom.getUsers().add(testUser);
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 3})
+    public void startGame_judgeCountValidation(int judgeCount) {
+        testRoom.setLobbyLeader(testUser);
+        testRoom.getWriters().add(new Writer(new User()));
+        testRoom.getWriters().add(new Writer(new User()));
 
-        User judgeUser = new User();
-        judgeUser.setId(20L);
-        testRoom.getJudges().add(new Judge(judgeUser));
+        for (int i = 0; i < judgeCount; i++) {
+            User judgeUser = new User();
+            judgeUser.setId(100L + i);
+            testRoom.getJudges().add(new Judge(judgeUser));
+        }
 
         given(roomRepository.findById(anyLong())).willReturn(Optional.of(testRoom));
+        given(gameRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> roomService.swapRole(1L, "JUDGE", "Bearer valid-token"));
+        if (judgeCount == 0) {
+            ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                    () -> roomService.startGame(1L, "Bearer valid-token"));
+            assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+            verify(gameRepository, times(0)).save(any());
+        }
+        else {
+            Game game = roomService.startGame(1L, "Bearer valid-token");
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+            assertNotNull(game);
+            assertEquals(judgeCount, game.getJudges().size());
+            verify(gameRepository, times(1)).save(any());
+            verify(roomRepository, times(1)).delete(testRoom);
+        }
     }
 
     @Test

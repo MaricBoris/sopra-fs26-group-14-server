@@ -71,7 +71,7 @@ public class GameService {
        
         
         //checkIfPlayerDisconnected(playedGame, timeoutMillis, now);
-        if (playedGame.getWriters().size()!=2 || playedGame.getJudges().size()!=1 ){
+        if (playedGame.getWriters().size()!=2 || playedGame.getJudges().isEmpty()){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Erroneous Game State"); //Check 400
         }
         resolveExpiredTurnIfNeeded(playedGame);
@@ -95,7 +95,7 @@ public class GameService {
         }
         if (!disconnectedJudges.isEmpty()) {
             playedGame.getJudges().removeAll(disconnectedJudges);
-            if ( playedGame.getJudges().size()<1 ){
+            if (playedGame.getJudges().isEmpty()){
             gameCleanupService.deleteGameAndFlush(playedGame);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game ended because judge disconnected");
             }
