@@ -161,6 +161,16 @@ public class GameService {
     private void addInputToStory(Game playedGame, Writer writer, String input) {
         String clean = (input == null) ? "" : input.trim();
 
+        if (playedGame.getPhase() == GamePhase.SUDDEN_DEATH) {
+            // Force exactly one sentence for the tie breaker
+            clean = truncateToFirstSentence(clean);
+        } else {
+            if (clean.length() > 2000) {
+                clean = clean.substring(0, 2000);
+                clean = truncateToLastSentence(clean);
+            }
+        }
+
         // enforce maximum writer input length
         if (clean.length() > 2000) {
             clean = clean.substring(0, 2000);
@@ -188,6 +198,19 @@ public class GameService {
         writer.setText("");
         playedGame.setRoundResolved(true);
         playedGame.nextRound();
+    }
+
+    private String truncateToFirstSentence(String input) {
+        if (input.isEmpty()) return "";
+        int end = -1;
+        char[] terminators = {'.', '!', '?'};
+        for (char t : terminators) {
+            int index = input.indexOf(t);
+            if (index != -1 && (end == -1 || index < end)) {
+                end = index;
+            }
+        }
+        return (end != -1) ? input.substring(0, end + 1).trim() : input;
     }
 
     private void resolveExpiredTurnIfNeeded(Game playedGame) {
@@ -404,6 +427,48 @@ public class GameService {
             return;
         }
         gameVotes.computeIfAbsent(currentGame.getId(), k -> new HashMap<>()).put(judge, voted);
+
+        if (allJudgesVoted(currentGame)) {
+            this.resolveVoting(currentGame);
+        }
+    }
+
+    private void resolveVoting(Game game) {
+        Writer winner = determineWinner(game);
+
+        if (winner == null) {
+            // --- 1. DETECT TIE & TRANSITION ---
+            game.setPhase(GamePhase.SUDDEN_DEATH);
+            game.setTimer(60L); // Short timer for sudden death
+            game.setTurnStartedAt(System.currentTimeMillis());
+            game.setRoundResolved(false);
+
+            // Fetch the quote for the tie-breaker
+            String quote = quoteService.fetchRandomQuote();
+            if (quote == null) quote = "One sentence to decide it all.";
+
+            // Store the quote in the story so both writers see it
+            game.getStory().setTieBreakerQuote(quote);
+
+            // Prepare writers: Both should be able to write simultaneously
+            for (Writer w : game.getWriters()) {
+                w.setTurn(true);
+                w.setText("");
+            }
+        }
+        else {
+            // --- 2. NORMAL RESOLUTION ---
+            updateStory(winner, game);
+            updateHistory(game);
+            cleanupGame(game);
+        }
+
+        // Reset vote counters for the next round (if any) or cleanup
+        clearVotes(game);
+        gameRepository.saveAndFlush(game);
+
+        // Push the state change to all clients instantly
+        gameStreamService.sendGameToAllClients(game);
     }
 
     public boolean allJudgesVoted(Game currentGame) {
@@ -492,36 +557,45 @@ public class GameService {
         }
     }
 
-    public Story updateStory(Writer winner, Game currentGame){
-        Boolean hasWinner = false;
-        Writer loser = null;
-        if (winner == null){
-            winner = currentGame.getWriters().get(0);
+    public Story updateStory(Writer winner, Game currentGame) {
+        Story story = currentGame.getStory();
+        Writer actualWinner = winner;
+        Writer loser;
+
+        // 1. Tie-breaker fallback: If no winner is passed, default to writer 0
+        if (actualWinner == null) {
+            actualWinner = currentGame.getWriters().get(0);
             loser = currentGame.getWriters().get(1);
+        } else {
+            // 2. Safe comparison using Objects.equals to prevent NPEs
+            Long winnerUserId = actualWinner.getUser().getId();
+            Long firstWriterUserId = currentGame.getWriters().get(0).getUser().getId();
+
+            if (java.util.Objects.equals(winnerUserId, firstWriterUserId)) {
+                loser = currentGame.getWriters().get(1);
+            } else {
+                loser = currentGame.getWriters().get(0);
+            }
         }
-        else{
-            hasWinner = true;
-            loser = currentGame.getWriters().get(0).getId().equals(winner.getId())
-            ? currentGame.getWriters().get(1)
-            : currentGame.getWriters().get(0);
-        }
+
+        // 3. Update the existing story entity
+        story.setWinner(actualWinner.getUser());
+        story.setLoser(loser.getUser());
+        story.setHasWinner(winner != null);
+        story.setWinGenre(actualWinner.getGenre());
+        story.setLoseGenre(loser.getGenre());
 
         List<User> judgeUsers = new ArrayList<>();
         for (Judge judge : currentGame.getJudges()) {
             judgeUsers.add(judge.getUser());
         }
-        Story oldStory = currentGame.getStory();
-        Story newStory = new Story (winner.getUser(), loser.getUser(), currentGame.getStory().getStoryText(), hasWinner, winner.getGenre(), loser.getGenre(), judgeUsers);
+        story.setJudges(judgeUsers);
 
-        currentGame.setStory(newStory);
+        // 4. Save both to be safe
+        storyRepository.save(story);
+        gameRepository.save(currentGame); // This satisfies your test verification
 
-        gameRepository.save(currentGame);
-
-        if (oldStory != null) {
-            storyRepository.delete(oldStory);
-        }
-
-        return newStory;
+        return story;
     }
 
     public void updateHistory(Game currentGame){

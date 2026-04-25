@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
+import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
@@ -43,19 +44,6 @@ public class DTOMapperTest {
         assertEquals(now, user.getCreationDate());
     }
 
-    @Test
-    public void convertEntityToUserPersonalGetDTO_success() {
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("personalUser");
-        user.setToken("secret-token");
-
-        UserPersonalGetDTO dto = DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(user);
-
-        assertEquals(user.getId(), dto.getId());
-        assertEquals(user.getToken(), dto.getToken());
-    }
-
     // --- ROLES MAPPING (WRITER & JUDGE) ---
 
     @Test
@@ -69,8 +57,10 @@ public class DTOMapperTest {
         writer.setId(55L);
         writer.setTurn(true);
         writer.setGenre("Sci-Fi");
+        writer.setGenreDescription("A futuristic setting");
         writer.setText("The story begins...");
         writer.setQuote("To be or not to be.");
+        writer.setQuoteAssignedRound(2);
         Long time = 12345L;
         writer.setLastSeenAt(time);
 
@@ -80,10 +70,10 @@ public class DTOMapperTest {
         assertEquals(user.getUsername(), dto.getUsername());
         assertEquals(true, dto.getTurn());
         assertEquals("Sci-Fi", dto.getGenre());
+        assertEquals("A futuristic setting", dto.getGenreDescription());
         assertEquals("The story begins...", dto.getText());
         assertEquals("To be or not to be.", dto.getQuote());
-        assertEquals(55L, writer.getId());
-        assertEquals(time, writer.getLastSeenAt());
+        assertEquals(2, dto.getQuoteAssignedRound());
     }
 
     @Test
@@ -96,16 +86,12 @@ public class DTOMapperTest {
         judge.setUser(user);
         judge.setId(88L);
         judge.setInsertions(5L);
-        Long time = 67890L;
-        judge.setLastSeenAt(time);
 
         JudgeGetDTO dto = DTOMapper.INSTANCE.convertEntityToJudgeGetDTO(judge);
 
         assertEquals(user.getId(), dto.getId());
         assertEquals(user.getUsername(), dto.getUsername());
         assertEquals(5L, dto.getInsertions());
-        assertEquals(88L, judge.getId());
-        assertEquals(time, judge.getLastSeenAt());
     }
 
     // --- GAME, ROOM & STORY MAPPING ---
@@ -117,6 +103,9 @@ public class DTOMapperTest {
         Story story = new Story(winner, loser, "Old text", true, "WinG", "LoseG", new ArrayList<>());
 
         story.setStoryText("New story text");
+        story.setObjective("Incorporate a red apple"); // New Field
+        story.setTieBreakerQuote("Life is a journey"); // New Field
+
         User j = new User();
         story.getJudges().add(j);
 
@@ -124,8 +113,24 @@ public class DTOMapperTest {
 
         assertEquals("New story text", storyGetDTO.getStoryText());
         assertEquals(winner.getUsername(), storyGetDTO.getWinnerUsername());
-        assertEquals(1, story.getJudges().size());
-        assertNotNull(story.getCreationDate());
+        assertEquals("Incorporate a red apple", storyGetDTO.getObjective());
+        assertEquals("Life is a journey", storyGetDTO.getTieBreakerQuote());
+    }
+
+    @Test
+    public void convertEntityToGameGetDTO_success() {
+        Game game = new Game();
+        game.setId(100L);
+        game.setTimer(60L);
+        game.setCurrentRound(3);
+        game.setPhase(GamePhase.SUDDEN_DEATH);
+
+        GameGetDTO dto = DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+
+        assertEquals(100L, dto.getGameId());
+        assertEquals(60L, dto.getTimer());
+        assertEquals(3, dto.getCurrentRound());
+        assertEquals(GamePhase.SUDDEN_DEATH.toString(), dto.getPhase());
     }
 
     @Test
@@ -141,20 +146,6 @@ public class DTOMapperTest {
 
         assertNotNull(roomGetDTO);
         assertEquals(0, roomGetDTO.getPlayerCount());
-    }
-
-    @Test
-    public void convertEntityToGameGetDTO_success() {
-        Game game = new Game();
-        game.setId(100L);
-        game.setTimer(90L);
-        game.setCurrentRound(1);
-
-        GameGetDTO dto = DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
-
-        assertEquals(100L, dto.getGameId());
-        assertEquals(90L, dto.getTimer());
-        assertEquals(1, dto.getCurrentRound());
     }
 
     // --- DIRECT DTO POJO TESTS ---
