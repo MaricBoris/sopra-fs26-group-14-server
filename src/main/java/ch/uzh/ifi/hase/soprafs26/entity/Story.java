@@ -39,6 +39,9 @@ public class Story implements Serializable {
     @Column
     private String objective;
 
+    @Column
+    private String tieBreakerQuote;
+
     public Story() {
         this.storyText = "";
         this.hasWinner = false;
@@ -54,6 +57,7 @@ public class Story implements Serializable {
         this.loseGenre = loseGenre;
         this.judges = judges;
         this.creationDate = new Date();
+        this.tieBreakerQuote = "";
     }
 
 
@@ -86,4 +90,7 @@ public class Story implements Serializable {
 
     public String getObjective() { return objective; }
     public void setObjective(String objective) { this.objective = objective; }
+
+    public String getTieBreakerQuote() { return tieBreakerQuote; }
+    public void setTieBreakerQuote(String tieBreakerQuote) { this.tieBreakerQuote = tieBreakerQuote; }
 }
