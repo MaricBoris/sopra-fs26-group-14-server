@@ -4,6 +4,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,12 +16,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
 
 public class UserServiceTest {
 
@@ -371,5 +374,224 @@ public class UserServiceTest {
         User user1 = new User(); user1.setId(1L); user1.setToken("T1");
         User user2 = new User(); user2.setId(1L); user2.setToken("T2");
         assertThrows(ResponseStatusException.class, () -> userService.checkUsersMatch(user1, user2));
+    }
+
+    @Test
+    public void findAllStoriesOfUser_userIsWinner_returnsStories() {
+        long userId = 1L;
+        
+        User user = new User();
+        user.setId(userId);
+        
+        User otherUser = new User();
+        otherUser.setId(2L);
+        
+        Story story1 = new Story();
+        story1.setWinner(user);
+        story1.setLoser(otherUser);
+        story1.setJudges(new ArrayList<>());
+        
+        Story story2 = new Story();
+        story2.setWinner(otherUser);
+        story2.setLoser(user);
+        story2.setJudges(new ArrayList<>());
+        
+        List<Story> allStories = Arrays.asList(story1, story2);
+        
+        given(storyRepository.findAll()).willReturn(allStories);
+        
+
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
+        
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    public void findAllStoriesOfUser_userIsLoser_returnsStories() {
+
+        long userId = 1L;
+        
+        User user = new User();
+        user.setId(userId);
+        
+        User otherUser = new User();
+        otherUser.setId(2L);
+        
+        Story story = new Story();
+        story.setWinner(otherUser);
+        story.setLoser(user);
+        story.setJudges(new ArrayList<>());
+        
+        List<Story> allStories = Arrays.asList(story);
+        
+        given(storyRepository.findAll()).willReturn(allStories);
+        
+    
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
+        
+    
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    public void findAllStoriesOfUser_userIsJudge_returnsStories() {
+
+        long userId = 1L;
+        
+        User judge = new User();
+        judge.setId(userId);
+        
+        User user1 = new User();
+        user1.setId(2L);
+        
+        User user2 = new User();
+        user2.setId(3L);
+        
+        Story story = new Story();
+        story.setWinner(user1);
+        story.setLoser(user2);
+        story.setJudges(Arrays.asList(judge));
+        
+        List<Story> allStories = Arrays.asList(story);
+        
+        given(storyRepository.findAll()).willReturn(allStories);
+
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
+        
+        assertEquals(1, result.size());
+    }
+
+
+    @Test
+    public void findAllStoriesOfUser_userHasNone_returnsEmptyList() {
+  
+        long userId = 1L;
+        
+        User user1 = new User();
+        user1.setId(2L);
+        
+        User user2 = new User();
+        user2.setId(3L);
+        
+        User user3 = new User();
+        user3.setId(4L);
+        
+        Story story = new Story();
+        story.setWinner(user1);
+        story.setLoser(user2);
+        story.setJudges(Arrays.asList(user3));
+        
+        List<Story> allStories = Arrays.asList(story);
+        
+        given(storyRepository.findAll()).willReturn(allStories);
+        
+
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
+        
+  
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void findAllStoriesOfUser_noStories_returnsEmptyList() {
+    
+        long userId = 1L;
+        
+        given(storyRepository.findAll()).willReturn(new ArrayList<>());
+        
+   
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
+
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void findAllStoriesOfUser_multipleJudges_userIsOneOfThem_returnsStory() {
+ 
+        long userId = 1L;
+        
+        User judge1 = new User();
+        judge1.setId(userId);
+        
+        User judge2 = new User();
+        judge2.setId(2L);
+        
+        User user1 = new User();
+        user1.setId(3L);
+        
+        User user2 = new User();
+        user2.setId(4L);
+        
+        Story story = new Story();
+        story.setWinner(user1);
+        story.setLoser(user2);
+        story.setJudges(Arrays.asList(judge1, judge2));
+        
+        List<Story> allStories = Arrays.asList(story);
+        
+        given(storyRepository.findAll()).willReturn(allStories);
+
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
+        
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    public void isAJudge_userIsJudge_returnsTrue() {
+        
+        long userId = 1L;
+        
+        User judge = new User();
+        judge.setId(userId);
+        
+        Story story = new Story();
+        story.setJudges(Arrays.asList(judge));
+        
+
+        Boolean result = userService.isAJudge(story, userId);
+
+        assertTrue(result);
+    }
+
+    @Test
+    public void isAJudge_userIsNotJudge_returnsFalse() {
+        
+        long userId = 1L;
+        
+        User judge = new User();
+        judge.setId(2L);
+        
+        Story story = new Story();
+        story.setJudges(Arrays.asList(judge));
+        
+        
+        Boolean result = userService.isAJudge(story, userId);
+        
+        
+        assertFalse(result);
+    }
+
+
+    @Test
+    public void isAJudge_multipleJudges_userIsSecondJudge_returnsTrue() {
+
+        long userId = 1L;
+        
+        User judge1 = new User();
+        judge1.setId(2L);
+        
+        User judge2 = new User();
+        judge2.setId(userId);
+        
+        User judge3 = new User();
+        judge3.setId(3L);
+        
+        Story story = new Story();
+        story.setJudges(Arrays.asList(judge1, judge2, judge3));
+        
+  
+        Boolean result = userService.isAJudge(story, userId);
+  
+        assertTrue(result);
     }
 }
