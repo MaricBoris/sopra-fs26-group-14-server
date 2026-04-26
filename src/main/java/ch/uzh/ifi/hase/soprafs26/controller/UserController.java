@@ -84,8 +84,6 @@ public class UserController {
             token = token.substring(7);
         }
 
-        //User foundUserToken = userService.findUserFromToken(token);
-        //userService.checkUsersMatch(foundUserId, foundUserToken); this check makes it impossible to visit other profiles
 
         userService.findUserFromToken(token); //ensures only authenticated users can fetch
 
@@ -143,5 +141,19 @@ public class UserController {
         return userService.findStoryById(storyId);
     }
 
+    @GetMapping("/results/user/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public List<StoryGetDTO> getStoriesByUserId(@PathVariable Long userId, @RequestHeader("Authorization") String bearerToken) {
+        userService.findUserFromId(userId);
+
+        String token = bearerToken;
+        if (token != null && token.startsWith(bearer)) {
+            token = token.substring(7);
+        }
+        userService.findUserFromToken(token); 
+
+        return userService.findAllStoriesOfUser(userId);                                                            
+    }
 
 }

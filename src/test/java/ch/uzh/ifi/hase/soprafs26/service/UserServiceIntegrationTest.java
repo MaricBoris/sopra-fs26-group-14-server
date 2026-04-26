@@ -1,9 +1,11 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.server.ResponseStatusException;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,10 +39,14 @@ public class UserServiceIntegrationTest {
     @Autowired
     private GameRepository gameRepository;
 
+    @Autowired
+    private StoryRepository storyRepository;
+
     @BeforeEach
     public void setup() {
         gameRepository.deleteAll();
         roomRepository.deleteAll();
+        storyRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -165,5 +175,245 @@ public class UserServiceIntegrationTest {
 
         User foundUser = userRepository.findByUsername("stayLoggedIn");
         assertEquals(currentToken, foundUser.getToken());
+    }
+
+    
+
+    @Test
+    public void findAllStoriesOfUser_userIsWinner_success() {
+        User winner = new User();
+        winner.setUsername("winner");
+        winner.setPassword("password");
+        winner.setToken("token1");
+        winner = userRepository.save(winner);
+        userRepository.flush();
+        
+        User loser = new User();
+        loser.setUsername("loser");
+        loser.setPassword("password");
+        loser.setToken("token2");
+        loser = userRepository.save(loser);
+        userRepository.flush();
+        
+        Story story = new Story();
+        story.setWinner(winner);
+        story.setLoser(loser);
+        story.setJudges(new ArrayList<>());
+        story = storyRepository.save(story);
+        storyRepository.flush();
+        
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(winner.getId());
+        
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    public void findAllStoriesOfUser_userIsLoser_success() {
+        User winner = new User();
+        winner.setUsername("winner");
+        winner.setPassword("password");
+        winner.setToken("token1");
+        winner = userRepository.save(winner);
+        userRepository.flush();
+        
+        User loser = new User();
+        loser.setUsername("loser");
+        loser.setPassword("password");
+        loser.setToken("token2");
+        loser = userRepository.save(loser);
+        userRepository.flush();
+        
+        Story story = new Story();
+        story.setWinner(winner);
+        story.setLoser(loser);
+        story.setJudges(new ArrayList<>());
+        story = storyRepository.save(story);
+        storyRepository.flush();
+        
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(loser.getId());
+        
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    public void findAllStoriesOfUser_userIsJudge_success() {
+        User winner = new User();
+        winner.setUsername("winner");
+        winner.setPassword("password");
+        winner.setToken("token1");
+        winner = userRepository.save(winner);
+        userRepository.flush();
+        
+        User loser = new User();
+        loser.setUsername("loser");
+        loser.setPassword("password");
+        loser.setToken("token2");
+        loser = userRepository.save(loser);
+        userRepository.flush();
+        
+        User judge = new User();
+        judge.setUsername("judge");
+        judge.setPassword("password");
+        judge.setToken("token3");
+        judge = userRepository.save(judge);
+        userRepository.flush();
+        
+        Story story = new Story();
+        story.setWinner(winner);
+        story.setLoser(loser);
+        story.setJudges(Arrays.asList(judge));
+        story = storyRepository.save(story);
+        storyRepository.flush();
+        
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(judge.getId());
+        
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    public void findAllStoriesOfUser_multipleStories_returnsAllRelevant() {
+        User user = new User();
+        user.setUsername("mainUser");
+        user.setPassword("password");
+        user.setToken("token1");
+        user = userRepository.save(user);
+        userRepository.flush();
+        
+        User otherUser1 = new User();
+        otherUser1.setUsername("other1");
+        otherUser1.setPassword("password");
+        otherUser1.setToken("token2");
+        otherUser1 = userRepository.save(otherUser1);
+        userRepository.flush();
+        
+        User otherUser2 = new User();
+        otherUser2.setUsername("other2");
+        otherUser2.setPassword("password");
+        otherUser2.setToken("token3");
+        otherUser2 = userRepository.save(otherUser2);
+        userRepository.flush();
+        
+        Story story1 = new Story();
+        story1.setWinner(user);
+        story1.setLoser(otherUser1);
+        story1.setJudges(new ArrayList<>());
+        story1 = storyRepository.save(story1);
+        
+        Story story2 = new Story();
+        story2.setWinner(otherUser1);
+        story2.setLoser(user);
+        story2.setJudges(new ArrayList<>());
+        story2 = storyRepository.save(story2);
+        
+        Story story3 = new Story();
+        story3.setWinner(otherUser1);
+        story3.setLoser(otherUser2);
+        story3.setJudges(Arrays.asList(user));
+        story3 = storyRepository.save(story3);
+        
+        Story story4 = new Story();
+        story4.setWinner(otherUser1);
+        story4.setLoser(otherUser2);
+        story4.setJudges(new ArrayList<>());
+        story4 = storyRepository.save(story4);
+        
+        storyRepository.flush();
+        
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(user.getId());
+        
+        assertEquals(3, result.size());
+    }
+
+    @Test
+    public void findAllStoriesOfUser_userNotInvolved_returnsEmpty() {
+        User user = new User();
+        user.setUsername("mainUser");
+        user.setPassword("password");
+        user.setToken("token1");
+        user = userRepository.save(user);
+        userRepository.flush();
+        
+        User otherUser1 = new User();
+        otherUser1.setUsername("other1");
+        otherUser1.setPassword("password");
+        otherUser1.setToken("token2");
+        otherUser1 = userRepository.save(otherUser1);
+        userRepository.flush();
+        
+        User otherUser2 = new User();
+        otherUser2.setUsername("other2");
+        otherUser2.setPassword("password");
+        otherUser2.setToken("token3");
+        otherUser2 = userRepository.save(otherUser2);
+        userRepository.flush();
+        
+        Story story = new Story();
+        story.setWinner(otherUser1);
+        story.setLoser(otherUser2);
+        story.setJudges(new ArrayList<>());
+        story = storyRepository.save(story);
+        storyRepository.flush();
+        
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(user.getId());
+        
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void findAllStoriesOfUser_noStories_returnsEmpty() {
+        User user = new User();
+        user.setUsername("mainUser");
+        user.setPassword("password");
+        user.setToken("token1");
+        user = userRepository.save(user);
+        userRepository.flush();
+        
+        List<StoryGetDTO> result = userService.findAllStoriesOfUser(user.getId());
+        
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void findAllStoriesOfUser_multipleJudges_success() {
+        User winner = new User();
+        winner.setUsername("winner");
+        winner.setPassword("password");
+        winner.setToken("token1");
+        winner = userRepository.save(winner);
+        userRepository.flush();
+        
+        User loser = new User();
+        loser.setUsername("loser");
+        loser.setPassword("password");
+        loser.setToken("token2");
+        loser = userRepository.save(loser);
+        userRepository.flush();
+        
+        User judge1 = new User();
+        judge1.setUsername("judge1");
+        judge1.setPassword("password");
+        judge1.setToken("token3");
+        judge1 = userRepository.save(judge1);
+        userRepository.flush();
+        
+        User judge2 = new User();
+        judge2.setUsername("judge2");
+        judge2.setPassword("password");
+        judge2.setToken("token4");
+        judge2 = userRepository.save(judge2);
+        userRepository.flush();
+        
+        Story story = new Story();
+        story.setWinner(winner);
+        story.setLoser(loser);
+        story.setJudges(Arrays.asList(judge1, judge2));
+        story = storyRepository.save(story);
+        storyRepository.flush();
+        
+        List<StoryGetDTO> result1 = userService.findAllStoriesOfUser(judge1.getId());
+        List<StoryGetDTO> result2 = userService.findAllStoriesOfUser(judge2.getId());
+        
+        assertEquals(1, result1.size());
+        assertEquals(1, result2.size());
     }
 }
