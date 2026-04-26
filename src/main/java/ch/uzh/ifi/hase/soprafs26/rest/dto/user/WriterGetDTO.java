@@ -5,6 +5,7 @@ public class WriterGetDTO {
     private String username;
     private Boolean turn;
     private String genre;
+    private String genreDescription;
     private String text;
     private String quote;
     private Integer quoteAssignedRound;
@@ -20,6 +21,9 @@ public class WriterGetDTO {
 
     public String getGenre() { return genre; }
     public void setGenre(String genre) { this.genre = genre; }
+
+    public String getGenreDescription() { return genreDescription; }
+    public void setGenreDescription(String genreDescription) { this.genreDescription = genreDescription; }
 
     public String getText() { return text; }
     public void setText(String text) { this.text = text; }

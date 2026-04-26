@@ -52,6 +52,7 @@ public interface DTOMapper {
     @Mapping(source = "user.username", target = "username")
     @Mapping(source = "turn", target = "turn")
     @Mapping(source = "genre", target = "genre")
+    @Mapping(source = "genreDescription", target = "genreDescription")
     @Mapping(source = "text", target = "text")
     @Mapping(source = "quote", target = "quote")
     @Mapping(source = "quoteAssignedRound", target = "quoteAssignedRound")
@@ -77,6 +78,7 @@ public interface DTOMapper {
     @Mapping(source = "loseGenre", target = "loseGenre")
     @Mapping(source = "winner.username", target = "winnerUsername")
     @Mapping(source = "loser.username", target = "loserUsername")
+    @Mapping(source = "objective", target = "objective")
     StoryGetDTO convertEntityToStoryGetDTO(Story story);
 
     @Mapping(source = "id", target = "gameId")

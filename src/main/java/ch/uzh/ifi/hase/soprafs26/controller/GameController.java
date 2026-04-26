@@ -11,16 +11,20 @@ import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ch.uzh.ifi.hase.soprafs26.service.GameStreamService;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 public class GameController {
 
     private final GameService gameService;
+    private final GameStreamService gameStreamService;
 
 
-
-    GameController(GameService gameService) { 
-        this.gameService = gameService; 
+    GameController(GameService gameService, GameStreamService gameStreamService) {
+        this.gameService = gameService;
+        this.gameStreamService = gameStreamService;
     }
 
     @GetMapping("/games/{gameid}")
@@ -34,6 +38,18 @@ public class GameController {
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
     }
 
+    @GetMapping(value = "/games/{gameid}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public SseEmitter streamGame(
+            @PathVariable("gameid") Long gameid,
+            @RequestParam("token") String token) {
+
+        String bearerToken = "Bearer " + token;
+        gameService.getGame(gameid, bearerToken);
+        return gameStreamService.addClient(gameid);
+    }
+
     @PostMapping("/games/{gameid}/input")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
@@ -43,7 +59,7 @@ public class GameController {
             @RequestHeader(value = "Authorization", required = false) String bearerToken) {
 
         Game updatedGame = gameService.insertWriterInput(gameid, inputDTO.getPlayer(),inputDTO.getInput(), bearerToken);
-
+        gameStreamService.sendGameToAllClients(updatedGame);
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(updatedGame);
     }
 
@@ -56,6 +72,7 @@ public class GameController {
             @RequestHeader(value = "Authorization", required = false) String bearerToken) {
 
         Game updatedGame = gameService.saveWriterDraft(gameid, inputDTO.getInput(), bearerToken);
+        gameStreamService.sendGameToAllClients(updatedGame);
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(updatedGame);
     }
 
@@ -67,6 +84,7 @@ public class GameController {
             @RequestHeader(value = "Authorization", required = false) String bearerToken) {
 
         gameService.exitGame(gameid, bearerToken);
+        
     }
 
 
@@ -107,6 +125,7 @@ public class GameController {
 
         if(currentGame.getStory().getWinner() != null){
 
+            gameStreamService.sendGameToAllClients(currentGame);
             return DTOMapper.INSTANCE.convertEntityToGameGetDTO(currentGame);
         }
 
@@ -120,6 +139,7 @@ public class GameController {
 
         gameService.cleanupGame(currentGame);
 
+        gameStreamService.sendGameToAllClients(currentGame);
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(currentGame);
     }
 
@@ -130,6 +150,7 @@ public class GameController {
                             @RequestHeader(value = "Authorization") String bearerToken) {
         Game currentGame = gameService.getGame(gameId);
         gameService.deleteGame(currentGame);
+        gameStreamService.sendGameDeletedToAllClients(gameId);
     }
 
     // 📝 GET /games/current, returns the active game for the authenticated user
@@ -148,6 +169,7 @@ public class GameController {
     public GameGetDTO fetchQuote(@PathVariable("gameid") Long gameid, @RequestParam("player") Integer player,
             @RequestHeader(value = "Authorization", required = false) String bearerToken) {
         Game game = gameService.assignQuote(gameid, player, bearerToken);
+        gameStreamService.sendGameToAllClients(game);
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
     }
 }

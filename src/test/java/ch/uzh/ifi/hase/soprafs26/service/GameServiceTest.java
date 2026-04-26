@@ -17,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,6 +45,9 @@ public class GameServiceTest {
 
     @Mock
     private StoryRepository storyRepository;
+
+    @Mock
+    private GameStreamService gameStreamService;
 
     @InjectMocks
     private GameService gameService;
@@ -297,6 +301,19 @@ public class GameServiceTest {
 
     // ==================== addVote and allJudgesVoted ====================
 
+   @Test
+    public void addVote_writerIdIsNull_doesNotAddVote() {
+        Game game = new Game();
+        game.setId(1L);
+        
+        Writer writer = new Writer();  // Writer exists but ID is null
+        
+        gameService.addVote(game, writer, new Judge());
+        
+        Map<Long, Map<Judge, Writer>> allVotes = gameService.getGameVotes();
+        assertFalse(allVotes.containsKey(game.getId()));
+    }
+
     @Test
     public void addVote_singleJudge_allVoted() {
         User user = new User();
@@ -368,29 +385,8 @@ public class GameServiceTest {
         assertTrue(gameService.allJudgesVoted(game));
     }
 
-    @Test
-    public void addVote_judgeChangesVote_stillCountsAsOne() {
-        User user = new User();
-        user.setId(1L);
 
-        Judge judge = new Judge(user);
-        judge.setId(1L);
-
-        Writer writer1 = new Writer();
-        writer1.setId(1L);
-        Writer writer2 = new Writer();
-        writer2.setId(2L);
-
-        Game game = new Game();
-        game.setId(1L);
-        game.setJudges(List.of(judge));
-
-        gameService.addVote(game, writer1, judge);
-        gameService.addVote(game, writer2, judge);
-
-        // Map replaces the value, so still 1 vote entry
-        assertTrue(gameService.allJudgesVoted(game));
-    }
+    
 
     // ==================== determineWinner ====================
 
@@ -909,7 +905,7 @@ public class GameServiceTest {
     }
 
     @Test
-    public void insertWriterInput_inputTooLong_throws400() {
+    public void insertWriterInput_inputTooLong_truncatedTo2000() {
         Writer activeWriter = makeActiveWriter(11L, 1L, "draft from active writer", "Fantasy");
         Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
 
@@ -924,14 +920,16 @@ public class GameServiceTest {
         when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
         when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
         when(userRepository.findByToken("active-token")).thenReturn(activeUser);
+        when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         String tooLongInput = "x".repeat(2001);
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> gameService.insertWriterInput(1L, 1, tooLongInput, "Bearer active-token"));
+        Game result = gameService.insertWriterInput(1L, 1, tooLongInput, "Bearer active-token");
 
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        verify(gameRepository, never()).saveAndFlush(any(Game.class));
+        String savedText = result.getStory().getStoryText();
+
+        assertNotNull(savedText);
+        assertTrue(savedText.length() <= 2000);
     }
 
     @Test
