@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,10 +17,12 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -316,4 +320,77 @@ public class UserControllerTest {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Body creation failed");
         }
     }
+
+    @Test
+    public void getStoryById_validRequest_returnsStories()  throws Exception{
+       
+        Long userId = 1L;
+        String validToken = "valid-token-uuid";
+        String bearerToken = "Bearer " + validToken;
+        
+        User user = new User();
+        user.setId(userId);
+        user.setToken(validToken);
+        
+        StoryGetDTO story1 = new StoryGetDTO();
+        StoryGetDTO story2 = new StoryGetDTO();
+        List<StoryGetDTO> stories = Arrays.asList(story1, story2);
+        
+        given(userService.findUserFromId(userId)).willReturn(user);
+        given(userService.findUserFromToken(validToken)).willReturn(user);
+        given(userService.findAllStoriesOfUser(userId)).willReturn(stories);
+        
+        MockHttpServletRequestBuilder getRequest = get("/results/user/" + userId)
+                .header("Authorization", bearerToken)
+                .contentType(MediaType.APPLICATION_JSON);
+        
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)));
+    }
+
+    @Test
+    public void getStoryById_invalidToken_returns401()  throws Exception{
+        Long userId = 1L;
+        String invalidToken = "invalid-token-uuid";
+        String bearerToken = "Bearer " + invalidToken;
+        
+        User user = new User();
+        user.setId(userId);
+        
+        given(userService.findUserFromId(userId)).willReturn(user);
+        given(userService.findUserFromToken(invalidToken))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Error: You are not Authorized. Go to login and clear local Storage"));
+        
+        MockHttpServletRequestBuilder getRequest = get("/results/user/" + userId)
+                .header("Authorization", bearerToken)
+                .contentType(MediaType.APPLICATION_JSON);
+        
+        mockMvc.perform(getRequest)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.detail", containsString("Error: You are not Authorized")));
+     }
+
+     
+    @Test
+    public void getStoryById_userNotFound_returns404()  throws Exception{
+
+        Long userId = 999L;
+        String validToken = "valid-token-uuid";
+        String bearerToken = "Bearer " + validToken;
+        
+        given(userService.findUserFromId(userId))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: The provided id: %s is invalid and doesn't match any user."));
+        
+
+        MockHttpServletRequestBuilder getRequest = get("/results/user/" + userId)
+                .header("Authorization", bearerToken)
+                .contentType(MediaType.APPLICATION_JSON);
+        
+        mockMvc.perform(getRequest)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail", containsString("Error: The provided id")));
+    }
+
+        
 }
