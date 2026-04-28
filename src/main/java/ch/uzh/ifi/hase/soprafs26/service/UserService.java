@@ -257,4 +257,27 @@ public class UserService {
         return DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
     }
 
+    public List<StoryGetDTO> findAllStoriesOfUser(long id){
+        List<Story> allStories = storyRepository.findAll();
+
+        List<StoryGetDTO> allStoriesFromUser = new ArrayList<>();
+        for (Story story:allStories) {
+            if (story.getWinner().getId().equals(id) || story.getLoser().getId().equals(id) || isAJudge(story, id)){
+                StoryGetDTO getStory = DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
+                allStoriesFromUser.add(getStory);
+            }
+        }
+        return allStoriesFromUser;
+    }
+
+    public Boolean isAJudge(Story story, long id){
+        for (User judge:story.getJudges()){
+            if (judge.getId().equals(id)){
+                return true;
+            } 
+        }
+        return false;
+    }
+
+
 }

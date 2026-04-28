@@ -562,12 +562,12 @@ public class GameService {
         Writer actualWinner = winner;
         Writer loser;
 
-        // 1. Tie-breaker fallback: If no winner is passed, default to writer 0
+        
         if (actualWinner == null) {
             actualWinner = currentGame.getWriters().get(0);
             loser = currentGame.getWriters().get(1);
         } else {
-            // 2. Safe comparison using Objects.equals to prevent NPEs
+            
             Long winnerUserId = actualWinner.getUser().getId();
             Long firstWriterUserId = currentGame.getWriters().get(0).getUser().getId();
 
@@ -578,7 +578,7 @@ public class GameService {
             }
         }
 
-        // 3. Update the existing story entity
+      
         story.setWinner(actualWinner.getUser());
         story.setLoser(loser.getUser());
         story.setHasWinner(winner != null);
@@ -591,9 +591,9 @@ public class GameService {
         }
         story.setJudges(judgeUsers);
 
-        // 4. Save both to be safe
+
         storyRepository.save(story);
-        gameRepository.save(currentGame); // This satisfies your test verification
+        gameRepository.save(currentGame); 
 
         return story;
     }
