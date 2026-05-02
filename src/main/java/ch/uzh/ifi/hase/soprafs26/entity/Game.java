@@ -11,14 +11,14 @@ import java.util.List;
 @Table(name = "GAME")
 public class Game implements Serializable {
 
-    public static final int MAX_ROUNDS = 4;
+    private int maxRounds;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
 
-    private Long timer = 90L;
+    private Long timer;
     private Long turnStartedAt;
     private int currentRound = 1;
 
@@ -51,6 +51,7 @@ public class Game implements Serializable {
 
     public Long getTimer() { return timer; }
     public void setTimer(Long timer) { this.timer = timer; }
+
     public Long getTurnStartedAt() { return turnStartedAt; }
     public void setTurnStartedAt(Long turnStartedAt) { this.turnStartedAt = turnStartedAt; }
 
@@ -64,12 +65,15 @@ public class Game implements Serializable {
     public int getCurrentRound() { return currentRound; }
     public void setCurrentRound(int r) { this.currentRound = r; }
 
+    public int getMaxRounds() { return maxRounds; }
+    public void setMaxRounds(int r) { this.maxRounds = r; }
+
     public GamePhase getPhase() { return phase; }
     public void setPhase(GamePhase phase) { this.phase = phase; }
 
 
     public void nextRound() {
-        setTimer(90L);
+        //setTimer(90L);
         setTurnStartedAt(System.currentTimeMillis());
         setCurrentRound(currentRound + 1);
         setRoundResolved(false);
@@ -78,11 +82,10 @@ public class Game implements Serializable {
             writer.setTurn(!writer.getTurn());
         }
 
-        if (currentRound > MAX_ROUNDS) {
-            setCurrentRound(MAX_ROUNDS);
+        if (currentRound > maxRounds) {
+            setCurrentRound(maxRounds);
             setPhase(GamePhase.EVALUATION);
             setTurnStartedAt(System.currentTimeMillis());
-            setTimer(90L); 
         }
     }
     
