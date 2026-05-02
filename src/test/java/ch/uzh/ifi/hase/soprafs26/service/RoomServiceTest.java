@@ -443,4 +443,76 @@ public class RoomServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
+
+    // --- TIMER SETTINGS ---
+
+    @Test
+    public void setTimer_validLeader_success() {
+        testRoom.setLobbyLeader(testUser);
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        Room result = roomService.setTimer(1L, 60L, "Bearer valid-token");
+
+        assertEquals(60L, result.getTimer());
+        verify(roomRepository, times(1)).save(testRoom);
+    }
+
+    @Test
+    public void setTimer_notLeader_401Unauthorized() {
+        User otherUser = new User();
+        otherUser.setId(99L);
+        testRoom.setLobbyLeader(otherUser);
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.setTimer(1L, 60L, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    public void setTimer_roomNotFound_404NotFound() {
+        given(roomRepository.findById(99L)).willReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.setTimer(99L, 60L, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    // --- MAX ROUNDS SETTINGS ---
+
+    @Test
+    public void setMaxRounds_validLeader_success() {
+        testRoom.setLobbyLeader(testUser);
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        Room result = roomService.setMaxRounds(1L, 6, "Bearer valid-token");
+
+        assertEquals(6, result.getMaxRounds());
+        verify(roomRepository, times(1)).save(testRoom);
+    }
+
+    @Test
+    public void setMaxRounds_notLeader_401Unauthorized() {
+        User otherUser = new User();
+        otherUser.setId(99L);
+        testRoom.setLobbyLeader(otherUser);
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.setMaxRounds(1L, 6, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    public void setMaxRounds_roomNotFound_404NotFound() {
+        given(roomRepository.findById(99L)).willReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.setMaxRounds(99L, 6, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
 }

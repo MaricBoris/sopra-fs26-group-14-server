@@ -224,4 +224,106 @@ public class RoomServiceIntegrationTest {
         List<Room> rooms = roomService.getRooms(token);
         assertFalse(rooms.isEmpty());
     }
+
+    // --- Set Timer (PUT /rooms/{id}/timer) ---
+
+    @Test
+    public void setTimer_validLeader_success() {
+        Room room = new Room();
+        room.setName("TimerRoom");
+        room = roomService.createRoom(room, token);
+
+        Room updatedRoom = roomService.setTimer(room.getId(), 60L, token);
+
+        assertEquals(60L, updatedRoom.getTimer());
+    }
+
+    @Test
+    public void setTimer_notLeader_401Unauthorized() {
+        Room room = new Room();
+        room.setName("TimerRoomNotLeader");
+        room = roomService.createRoom(room, token);
+
+        User otherUser = new User();
+        otherUser.setUsername("notLeader");
+        otherUser.setPassword("password123");
+        otherUser = userService.createUser(otherUser);
+
+        final Long roomId = room.getId();
+        final String otherToken = "Bearer " + otherUser.getToken();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.setTimer(roomId, 60L, otherToken));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    public void setTimer_roomNotFound_404NotFound() {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.setTimer(999L, 60L, token));
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
+    public void setTimer_persistedCorrectly() {
+        Room room = new Room();
+        room.setName("TimerPersistRoom");
+        room = roomService.createRoom(room, token);
+
+        roomService.setTimer(room.getId(), 45L, token);
+
+        Room fromDb = roomRepository.findById(room.getId()).orElseThrow();
+        assertEquals(45L, fromDb.getTimer());
+    }
+
+    // --- Set Max Rounds (PUT /rooms/{id}/rounds) ---
+
+    @Test
+    public void setMaxRounds_validLeader_success() {
+        Room room = new Room();
+        room.setName("RoundsRoom");
+        room = roomService.createRoom(room, token);
+
+        Room updatedRoom = roomService.setMaxRounds(room.getId(), 6, token);
+
+        assertEquals(6, updatedRoom.getMaxRounds());
+    }
+
+    @Test
+    public void setMaxRounds_notLeader_401Unauthorized() {
+        Room room = new Room();
+        room.setName("RoundsRoomNotLeader");
+        room = roomService.createRoom(room, token);
+
+        User otherUser = new User();
+        otherUser.setUsername("notLeader2");
+        otherUser.setPassword("password123");
+        otherUser = userService.createUser(otherUser);
+
+        final Long roomId = room.getId();
+        final String otherToken = "Bearer " + otherUser.getToken();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.setMaxRounds(roomId, 6, otherToken));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    public void setMaxRounds_roomNotFound_404NotFound() {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.setMaxRounds(999L, 6, token));
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
+    public void setMaxRounds_persistedCorrectly() {
+        Room room = new Room();
+        room.setName("RoundsPersistRoom");
+        room = roomService.createRoom(room, token);
+
+        roomService.setMaxRounds(room.getId(), 8, token);
+
+        Room fromDb = roomRepository.findById(room.getId()).orElseThrow();
+        assertEquals(8, fromDb.getMaxRounds());
+    }
 }

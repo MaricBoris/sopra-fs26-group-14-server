@@ -91,5 +91,25 @@ public class RoomController {
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(startedGame);
     }
 
+    @PutMapping("/rooms/{roomId}/timer")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public RoomGetDTO updateTimer(@PathVariable Long roomId,
+                                 @RequestBody Long timer,
+                                 @RequestHeader(value = "Authorization", required = false) String bearerToken) {
+        Room room = roomService.setTimer(roomId, timer, bearerToken);
+        return DTOMapper.INSTANCE.convertEntityToRoomGetDTO(room);
+    }
+
+    @PutMapping("/rooms/{roomId}/rounds")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public RoomGetDTO updateMaxRounds(@PathVariable Long roomId,
+                                 @RequestBody int rounds,
+                                 @RequestHeader(value = "Authorization", required = false) String bearerToken) {
+        Room room = roomService.setMaxRounds(roomId, rounds, bearerToken);
+        return DTOMapper.INSTANCE.convertEntityToRoomGetDTO(room);
+    }
+
 
 }

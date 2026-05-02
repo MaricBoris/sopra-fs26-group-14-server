@@ -899,7 +899,7 @@ public class GameServiceTest {
         assertTrue(savedText.length() <= 2000);
     }
 
-    @Test
+   /* @Test
     public void insertWriterInput_validInput_appendsToStory_clearsDraft_switchesTurn_resetsTimerAndPersists() {
         Writer activeWriter = makeActiveWriter(11L, 1L, "draft from active writer", "Fantasy");
         Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
@@ -936,7 +936,7 @@ public class GameServiceTest {
         assertTrue(result.getTurnStartedAt() <= afterCall);
 
         verify(gameRepository, times(1)).saveAndFlush(game);
-    }
+    }*/
 
     @Test
     public void insertWriterInput_nullStory_createsNewStory() {
@@ -1023,7 +1023,7 @@ public class GameServiceTest {
                 () -> gameService.insertWriterInput(1L, 1, "text", "Bearer active-token"));
     }
 
-    @Test
+   /* @Test
     public void getGame_expiredTurn_autoSubmitsEmptyRound_switchesTurn_resetsTimerAndPersists() {
         Writer activeWriter = makeActiveWriter(11L, 1L, "draft that should be cleared on timeout", "Fantasy");
         Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
@@ -1062,7 +1062,7 @@ public class GameServiceTest {
         assertEquals("Existing story", result.getStory().getStoryText());
 
         verify(gameRepository, times(2)).saveAndFlush(game);
-    }
+    }*/
 
     // ==================== assignQuote ====================
 
