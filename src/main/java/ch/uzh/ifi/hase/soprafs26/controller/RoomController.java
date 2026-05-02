@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.entity.Room;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.ChatMessagePostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomRoleDTO;
@@ -91,5 +92,14 @@ public class RoomController {
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(startedGame);
     }
 
+    @PutMapping("/rooms/{roomId}/chat")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public RoomGetDTO sendChatMessage(@PathVariable Long roomId,
+                                      @RequestBody ChatMessagePostDTO chatMessagePostDTO,
+                                      @RequestHeader(value = "Authorization", required = false) String bearerToken) {
 
+        Room room = roomService.addChatMessage(roomId, chatMessagePostDTO.getMessage(), bearerToken);
+        return DTOMapper.INSTANCE.convertEntityToRoomGetDTO(room);
+    }
 }

@@ -108,9 +108,6 @@ public class RoomService {
             room.getWriters().add(new Writer(user));
         }
         else if ("JUDGE".equalsIgnoreCase(targetRole)) {
-            if (!room.getJudges().isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Wrong state and/or credential exchange");
-            }
             room.getJudges().add(new Judge(user));
         }
         else {
@@ -187,7 +184,7 @@ public class RoomService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Error: The Lobby leader has to start the game");
         }
-        if (room.getWriters().size() != 2 || room.getJudges().size() != 1) {
+        if (room.getWriters().size() != 2 || room.getJudges().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Error: Wrong state and/or credential exchange");
         }
@@ -258,5 +255,29 @@ public class RoomService {
         roomRepository.flush();
 
         return game;
+    }
+
+    public Room addChatMessage(Long roomId, String message, String bearerToken) {
+        String token = userService.extractToken(bearerToken);
+        User user = userService.findUserFromToken(token);
+
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found"));
+
+        boolean isParticipant = room.getUsers().contains(user) ||
+                room.getWriters().stream().anyMatch(w -> w.getUser().getId().equals(user.getId())) ||
+                room.getJudges().stream().anyMatch(j -> j.getUser().getId().equals(user.getId()));
+
+        if (!isParticipant) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this room");
+        }
+
+        if (message == null || message.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message cannot be empty");
+        }
+
+        room.getChat().add(new ChatMessage(user.getUsername(), message));
+
+        return roomRepository.save(room);
     }
 }
