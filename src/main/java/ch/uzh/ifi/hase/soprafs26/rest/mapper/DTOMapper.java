@@ -70,6 +70,8 @@ public interface DTOMapper {
     @Mapping(source = "users", target = "users")
     @Mapping(source = "writers", target = "writers")
     @Mapping(source = "judges", target = "judges")
+    @Mapping(source = "timer", target = "timer")
+    @Mapping(source = "maxRounds", target = "maxRounds")
     RoomGetDTO convertEntityToRoomGetDTO(Room room);
 
     @Mapping(source = "storyText", target = "storyText")
@@ -90,5 +92,6 @@ public interface DTOMapper {
     @Mapping(source = "story", target = "story")
     @Mapping(source = "currentRound", target = "currentRound")
     @Mapping(source = "phase", target = "phase")
+    @Mapping(source = "maxRounds", target = "maxRounds")
     GameGetDTO convertEntityToGameGetDTO(Game game);
 }

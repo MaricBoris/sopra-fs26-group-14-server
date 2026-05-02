@@ -31,6 +31,9 @@ public class Room implements Serializable {
     @ManyToOne
     private User lobbyLeader;
 
+    private Long timer;
+    private int maxRounds;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -51,4 +54,10 @@ public class Room implements Serializable {
 
     public User getLobbyLeader() { return lobbyLeader; }
     public void setLobbyLeader(User lobbyLeader) { this.lobbyLeader = lobbyLeader; }
+
+    public int getMaxRounds() { return maxRounds; }
+    public void setMaxRounds(int r) { this.maxRounds = r; }
+
+    public Long getTimer() { return timer; }
+    public void setTimer(Long timer) { this.timer = timer; }
 }
