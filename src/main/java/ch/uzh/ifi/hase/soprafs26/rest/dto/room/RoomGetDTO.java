@@ -15,6 +15,7 @@ public class RoomGetDTO {
     private List<UserGetDTO> users;
     private List<WriterGetDTO> writers;
     private List<JudgeGetDTO> judges;
+    private List<ChatMessageGetDTO> chat;
 
     public Long getId() {
         return id;
@@ -71,4 +72,8 @@ public class RoomGetDTO {
     public void setJudges(List<JudgeGetDTO> judges) {
         this.judges = judges;
     }
+
+    public List<ChatMessageGetDTO> getChat() { return chat; }
+
+    public void setChat(List<ChatMessageGetDTO> chat) { this.chat = chat; }
 }

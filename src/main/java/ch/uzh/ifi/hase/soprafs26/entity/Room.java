@@ -31,6 +31,10 @@ public class Room implements Serializable {
     @ManyToOne
     private User lobbyLeader;
 
+    @ElementCollection
+    @CollectionTable(name = "ROOM_CHAT", joinColumns = @JoinColumn(name = "room_id"))
+    private List<ChatMessage> chat = new ArrayList<>();
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -51,4 +55,7 @@ public class Room implements Serializable {
 
     public User getLobbyLeader() { return lobbyLeader; }
     public void setLobbyLeader(User lobbyLeader) { this.lobbyLeader = lobbyLeader; }
+
+    public List<ChatMessage> getChat() { return chat; }
+    public void setChat(List<ChatMessage> chat) { this.chat = chat; }
 }

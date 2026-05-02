@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.ChatMessageGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
@@ -70,7 +71,13 @@ public interface DTOMapper {
     @Mapping(source = "users", target = "users")
     @Mapping(source = "writers", target = "writers")
     @Mapping(source = "judges", target = "judges")
+    @Mapping(source = "chat", target = "chat")
     RoomGetDTO convertEntityToRoomGetDTO(Room room);
+
+    @Mapping(source = "username", target = "username")
+    @Mapping(source = "message", target = "message")
+    @Mapping(source = "timestamp", target = "timestamp")
+    ChatMessageGetDTO convertEntityToChatMessageGetDTO(ChatMessage chatMessage);
 
     @Mapping(source = "storyText", target = "storyText")
     @Mapping(source = "hasWinner", target = "hasWinner")
