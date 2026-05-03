@@ -9,6 +9,7 @@ public class GameGetDTO {
 
     private Long gameId;
     private Long timer;
+    private int maxRounds;
     private List<WriterGetDTO> writers;
     private List<JudgeGetDTO> judges;
     private int currentRound;
@@ -33,6 +34,9 @@ public class GameGetDTO {
     public void setTimer(Long timer) {
         this.timer = timer;
     }
+
+    public int getMaxRounds() { return maxRounds; }
+    public void setMaxRounds(int r) { this.maxRounds = r; }
 
      public Long getTurnStartedAt() {
         return turnStartedAt;

@@ -415,4 +415,100 @@ public class RoomControllerTest {
                     String.format("The request body could not be created.%s", e.toString()));
         }
     }
+
+
+    @Test
+    public void updateTimer_validRequest_200Ok() throws Exception {
+        Room room = new Room();
+        room.setId(1L);
+        room.setName("TestRoom");
+        room.setTimer(60L);
+
+        given(roomService.setTimer(anyLong(), any(), anyString())).willReturn(room);
+
+        MockHttpServletRequestBuilder putRequest = put("/rooms/1/timer")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("60");
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(room.getId().intValue())));
+    }
+
+    @Test
+    public void updateTimer_notLeader_401Unauthorized() throws Exception {
+        given(roomService.setTimer(anyLong(), any(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Error: You are not the lobby leader"));
+
+        MockHttpServletRequestBuilder putRequest = put("/rooms/1/timer")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("60");
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void updateTimer_roomNotFound_404NotFound() throws Exception {
+        given(roomService.setTimer(anyLong(), any(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: Room with roomId was not found"));
+
+        MockHttpServletRequestBuilder putRequest = put("/rooms/99/timer")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("60");
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isNotFound());
+    }
+
+
+    @Test
+    public void updateMaxRounds_validRequest_200Ok() throws Exception {
+        Room room = new Room();
+        room.setId(1L);
+        room.setName("TestRoom");
+        room.setMaxRounds(6);
+
+        given(roomService.setMaxRounds(anyLong(), any(int.class), anyString())).willReturn(room);
+
+        MockHttpServletRequestBuilder putRequest = put("/rooms/1/rounds")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("6");
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(room.getId().intValue())));
+    }
+
+    @Test
+    public void updateMaxRounds_notLeader_401Unauthorized() throws Exception {
+        given(roomService.setMaxRounds(anyLong(), any(int.class), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Error: You are not the lobby leader"));
+
+        MockHttpServletRequestBuilder putRequest = put("/rooms/1/rounds")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("6");
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void updateMaxRounds_roomNotFound_404NotFound() throws Exception {
+        given(roomService.setMaxRounds(anyLong(), any(int.class), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: Room with roomId was not found"));
+
+        MockHttpServletRequestBuilder putRequest = put("/rooms/99/rounds")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("6");
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isNotFound());
+    }
 }
