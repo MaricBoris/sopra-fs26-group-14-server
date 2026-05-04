@@ -172,5 +172,15 @@ public class GameController {
         gameStreamService.sendGameToAllClients(game);
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
     }
+
+    @PostMapping("/games/{gameId}/reduce-time")
+    @ResponseStatus(HttpStatus.OK)
+    public GameGetDTO reduceTime(
+            @PathVariable Long gameId,
+            @RequestHeader(value = "Authorization", required = false) String bearerToken) {
+
+        Game game = gameService.reduceTime(gameId, bearerToken);
+        return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+    }
 }
 

@@ -30,6 +30,8 @@ public class GameService {
     private final GameStreamService gameStreamService;
     private final GameCleanupService gameCleanupService;
     private final QuoteService quoteService;
+    private static final int time_reductions_per_writer = 2;
+    private static final int reduced_time = 45;
 
     
     private final List<String> abbreviations = new ArrayList<>(List.of( "z.b", "bzw", "usw", "etc", "d.h", "u.a", "ca", "vgl",
@@ -662,6 +664,48 @@ public class GameService {
 
         gameRepository.saveAndFlush(playedGame);
         return playedGame;
+    }
+
+    public Game reduceTime(Long gameId, String bearerToken) {
+        String token = userService.extractToken(bearerToken);
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        User requestingUser = getandCheckUser(token);
+
+        if (game.getPhase() != GamePhase.WRITING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Time can only be reduced during the WRITING phase");
+        }
+
+        boolean isJudge = game.getJudges().stream()
+                .anyMatch(j -> j.getUser().getId().equals(requestingUser.getId()));
+        if (!isJudge) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only judges can reduce writing time");
+        }
+
+        Writer activeWriter = game.getWriters().stream()
+                .filter(Writer::getTurn)
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "No active writer found"));
+
+        if (activeWriter.getReduceTimeReceived() >= time_reductions_per_writer) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Reduce-time limit already reached for this writer");
+        }
+
+        long elapsedMs = System.currentTimeMillis() - game.getTurnStartedAt();
+        long remainingSec = game.getTimer() - (elapsedMs / 1000);
+
+        if (remainingSec > reduced_time) {
+            long newElapsedMs = ((long) game.getTimer() - reduced_time) * 1000L;
+            game.setTurnStartedAt(System.currentTimeMillis() - newElapsedMs);
+        }
+
+        activeWriter.setReduceTimeReceived(activeWriter.getReduceTimeReceived() + 1);
+        gameRepository.save(game);
+        return game;
     }
 
 
