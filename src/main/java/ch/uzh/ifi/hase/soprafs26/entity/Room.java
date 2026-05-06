@@ -35,6 +35,9 @@ public class Room implements Serializable {
     @CollectionTable(name = "ROOM_CHAT", joinColumns = @JoinColumn(name = "room_id"))
     private List<ChatMessage> chat = new ArrayList<>();
 
+    private Long timer;
+    private int maxRounds;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -58,4 +61,10 @@ public class Room implements Serializable {
 
     public List<ChatMessage> getChat() { return chat; }
     public void setChat(List<ChatMessage> chat) { this.chat = chat; }
+
+    public int getMaxRounds() { return maxRounds; }
+    public void setMaxRounds(int r) { this.maxRounds = r; }
+
+    public Long getTimer() { return timer; }
+    public void setTimer(Long timer) { this.timer = timer; }
 }

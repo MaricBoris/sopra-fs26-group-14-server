@@ -9,6 +9,7 @@ public class WriterGetDTO {
     private String text;
     private String quote;
     private Integer quoteAssignedRound;
+    private int reduceTimeReceived;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -33,4 +34,7 @@ public class WriterGetDTO {
 
     public Integer getQuoteAssignedRound() { return quoteAssignedRound; }
     public void setQuoteAssignedRound(Integer quoteAssignedRound) { this.quoteAssignedRound = quoteAssignedRound; }
+
+    public int getReduceTimeReceived() { return reduceTimeReceived; }
+    public void setReduceTimeReceived(int v) { this.reduceTimeReceived = v; }
 }

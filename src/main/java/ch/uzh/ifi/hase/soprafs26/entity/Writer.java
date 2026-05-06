@@ -36,6 +36,9 @@ public class Writer implements Serializable {
     @Column
     private Integer quoteAssignedRound;
 
+    @Column(nullable = false)
+    private int reduceTimeReceived = 0;
+
 
     public Writer() {}
     public Writer(User user) { this.user = user; }
@@ -66,4 +69,7 @@ public class Writer implements Serializable {
 
     public Integer getQuoteAssignedRound() { return quoteAssignedRound; }
     public void setQuoteAssignedRound(Integer quoteAssignedRound) { this.quoteAssignedRound = quoteAssignedRound; }
+
+    public int getReduceTimeReceived() { return reduceTimeReceived; }
+    public void setReduceTimeReceived(int v) { this.reduceTimeReceived = v; }
 }

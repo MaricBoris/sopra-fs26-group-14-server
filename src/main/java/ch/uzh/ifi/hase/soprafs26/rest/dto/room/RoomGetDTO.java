@@ -16,6 +16,8 @@ public class RoomGetDTO {
     private List<WriterGetDTO> writers;
     private List<JudgeGetDTO> judges;
     private List<ChatMessageGetDTO> chat;
+    private Long timer;
+    private int maxRounds;
 
     public Long getId() {
         return id;
@@ -76,4 +78,10 @@ public class RoomGetDTO {
     public List<ChatMessageGetDTO> getChat() { return chat; }
 
     public void setChat(List<ChatMessageGetDTO> chat) { this.chat = chat; }
+
+    public int getMaxRounds() { return maxRounds; }
+    public void setMaxRounds(int r) { this.maxRounds = r; }
+
+    public Long getTimer() { return timer; }
+    public void setTimer(Long timer) { this.timer = timer; }
 }

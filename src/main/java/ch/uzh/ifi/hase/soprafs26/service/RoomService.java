@@ -48,9 +48,46 @@ public class RoomService {
         newRoom.setLobbyLeader(creator);
         newRoom.getUsers().add(creator);
         newRoom.setPlayerCount(1);
+        newRoom.setTimer(90L);
+        newRoom.setMaxRounds(10);
 
         return roomRepository.save(newRoom);
     }
+
+    public Room setTimer(Long roomId, Long timer, String bearerToken) {
+        String token = userService.extractToken(bearerToken);
+        User user = userService.findUserFromToken(token);
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Error: Room with roomId was not found"));
+        boolean isOwner = room.getLobbyLeader().equals(user);
+
+        if(!isOwner){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Error: You are not the lobby leader");
+        }
+
+        room.setTimer(timer);
+        return roomRepository.save(room);
+    }
+
+    public Room setMaxRounds(Long roomId, int rounds, String bearerToken) {
+        String token = userService.extractToken(bearerToken);
+        User user = userService.findUserFromToken(token);
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Error: Room with roomId was not found"));
+        boolean isOwner = room.getLobbyLeader().equals(user);
+
+        if(!isOwner){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Error: You are not the lobby leader");
+        }
+
+        room.setMaxRounds(rounds);
+        return roomRepository.save(room);
+    }
+
 
     public List<Room> getRooms(String bearerToken) {
         userService.findUserFromToken(userService.extractToken(bearerToken));
@@ -195,7 +232,8 @@ public class RoomService {
 
         game.setPhase(GamePhase.WRITING);
         game.setCurrentRound(1);
-        game.setTimer(90L);
+        game.setTimer(room.getTimer());
+        game.setMaxRounds(room.getMaxRounds());
         game.setTurnStartedAt(System.currentTimeMillis());
         game.setRoundResolved(false);
 
