@@ -564,12 +564,12 @@ public class GameService {
         Writer actualWinner = winner;
         Writer loser;
 
-        
+
         if (actualWinner == null) {
             actualWinner = currentGame.getWriters().get(0);
             loser = currentGame.getWriters().get(1);
         } else {
-            
+
             Long winnerUserId = actualWinner.getUser().getId();
             Long firstWriterUserId = currentGame.getWriters().get(0).getUser().getId();
 
@@ -580,7 +580,7 @@ public class GameService {
             }
         }
 
-      
+
         story.setWinner(actualWinner.getUser());
         story.setLoser(loser.getUser());
         story.setHasWinner(winner != null);
@@ -595,7 +595,7 @@ public class GameService {
 
 
         storyRepository.save(story);
-        gameRepository.save(currentGame); 
+        gameRepository.save(currentGame);
 
         return story;
     }

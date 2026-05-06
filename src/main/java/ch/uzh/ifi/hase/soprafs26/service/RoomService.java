@@ -294,4 +294,28 @@ public class RoomService {
 
         return game;
     }
+
+    public Room addChatMessage(Long roomId, String message, String bearerToken) {
+        String token = userService.extractToken(bearerToken);
+        User user = userService.findUserFromToken(token);
+
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found"));
+
+        boolean isParticipant = room.getUsers().contains(user) ||
+                room.getWriters().stream().anyMatch(w -> w.getUser().getId().equals(user.getId())) ||
+                room.getJudges().stream().anyMatch(j -> j.getUser().getId().equals(user.getId()));
+
+        if (!isParticipant) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this room");
+        }
+
+        if (message == null || message.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message cannot be empty");
+        }
+
+        room.getChat().add(new ChatMessage(user.getUsername(), message));
+
+        return roomRepository.save(room);
+    }
 }

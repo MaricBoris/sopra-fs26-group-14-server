@@ -31,6 +31,10 @@ public class Room implements Serializable {
     @ManyToOne
     private User lobbyLeader;
 
+    @ElementCollection
+    @CollectionTable(name = "ROOM_CHAT", joinColumns = @JoinColumn(name = "room_id"))
+    private List<ChatMessage> chat = new ArrayList<>();
+
     private Long timer;
     private int maxRounds;
 
@@ -54,6 +58,9 @@ public class Room implements Serializable {
 
     public User getLobbyLeader() { return lobbyLeader; }
     public void setLobbyLeader(User lobbyLeader) { this.lobbyLeader = lobbyLeader; }
+
+    public List<ChatMessage> getChat() { return chat; }
+    public void setChat(List<ChatMessage> chat) { this.chat = chat; }
 
     public int getMaxRounds() { return maxRounds; }
     public void setMaxRounds(int r) { this.maxRounds = r; }
