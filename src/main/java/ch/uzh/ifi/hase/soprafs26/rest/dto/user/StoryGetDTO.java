@@ -13,6 +13,7 @@ public class StoryGetDTO {
     private String loserUsername;
     private Date creationDate;
     private String objective;
+    private String tieBreakerQuote;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -40,4 +41,7 @@ public class StoryGetDTO {
 
     public String getObjective() { return objective; }
     public void setObjective(String objective) { this.objective = objective; }
+
+    public String getTieBreakerQuote() { return tieBreakerQuote; }
+    public void setTieBreakerQuote(String tieBreakerQuote) { this.tieBreakerQuote = tieBreakerQuote; }
 }

@@ -108,9 +108,6 @@ public class RoomService {
             room.getWriters().add(new Writer(user));
         }
         else if ("JUDGE".equalsIgnoreCase(targetRole)) {
-            if (!room.getJudges().isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Wrong state and/or credential exchange");
-            }
             room.getJudges().add(new Judge(user));
         }
         else {
@@ -187,7 +184,7 @@ public class RoomService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Error: The Lobby leader has to start the game");
         }
-        if (room.getWriters().size() != 2 || room.getJudges().size() != 1) {
+        if (room.getWriters().size() != 2 || room.getJudges().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Error: Wrong state and/or credential exchange");
         }
