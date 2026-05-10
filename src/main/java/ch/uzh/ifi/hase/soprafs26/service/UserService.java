@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.entity.UserStatistics;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserDeleteDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPasswordPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPutDTO;
@@ -76,6 +77,10 @@ public class UserService {
         }
         // Check 409
 		checkIfUserExists(newUser);
+
+        UserStatistics stats = new UserStatistics();
+        stats.setUser(newUser);
+        newUser.setStatistics(stats);
 
         // 201
         newUser.setToken(UUID.randomUUID().toString());
