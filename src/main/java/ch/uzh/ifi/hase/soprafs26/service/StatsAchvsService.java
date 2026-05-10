@@ -1,0 +1,128 @@
+package ch.uzh.ifi.hase.soprafs26.service;
+
+import ch.uzh.ifi.hase.soprafs26.entity.*;
+import ch.uzh.ifi.hase.soprafs26.repository.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional
+public class StatsAchvsService {
+
+    private final UserRepository userRepository;
+    private final AchievementRepository achievementRepository;
+    private final UserAchievementRepository userAchievementRepository;
+    private final GenreMasterRepository genreMasterRepository;
+
+    public StatsAchvsService(UserRepository userRepository,
+                             AchievementRepository achievementRepository,
+                             UserAchievementRepository userAchievementRepository,
+                             GenreMasterRepository genreMasterRepository) {
+        this.userRepository = userRepository;
+        this.achievementRepository = achievementRepository;
+        this.userAchievementRepository = userAchievementRepository;
+        this.genreMasterRepository = genreMasterRepository;
+    }
+
+    public void processGameResults(Game game, boolean isUnanimous) {
+        Story story = game.getStory();
+        User winner = story.getWinner();
+        User loser = story.getLoser();
+        List<User> judges = story.getJudges();
+        String genre = story.getWinGenre();
+
+        boolean isSuddenDeath = game.getStory().getTieBreakerQuote() != null;
+
+        setStats(winner, true, genre, isSuddenDeath, isUnanimous);
+        setStats(loser, false, genre, isSuddenDeath, false);
+
+        for (User judge : judges) {
+            judge.getStatistics().setWinsAsJudge(judge.getStatistics().getWinsAsJudge() + 1);
+            judge.getStatistics().setTotalVotesCast(judge.getStatistics().getTotalVotesCast() + 1);
+        }
+
+        setUserAchievements(winner);
+        setUserAchievements(loser);
+        judges.forEach(this::setUserAchievements);
+
+        setGenreMaster(genre);
+
+        userRepository.saveAll(judges);
+        userRepository.save(winner);
+        userRepository.save(loser);
+    }
+
+    private void setStats(User user, boolean won, String genre, boolean isSuddenDeath, boolean isUnanimous) {
+        UserStatistics stats = user.getStatistics();
+        if (won) {
+            stats.recordWin(genre, isSuddenDeath, isUnanimous);
+        } else {
+            stats.recordLoss(isSuddenDeath);
+        }
+    }
+
+    private void setUserAchievements(User user) {
+        UserStatistics stats = user.getStatistics();
+
+        if (stats.getGamesPlayed() == 1) grant(user, "ROOKIE_SCRIBE");
+        if (stats.getGamesWon() >= 20) grant(user, "PUBLISHED_AUTHOR");
+
+        if (stats.getWinsByGenre().getOrDefault("Horror", 0) >= 10) grant(user, "MASTER_OF_MACABRE");
+
+        if (stats.getUnanimousWins() >= 1) grant(user, "CROWD_FAVORITE");
+        if (stats.getSuddenDeathWins() >= 1) grant(user, "SUDDEN_DEATH_SURVIVOR");
+
+        checkTopPercentile(user);
+    }
+
+    private void setGenreMaster(String genre) {
+        GenreMaster gm = genreMasterRepository.findByGenre(genre);
+        if (gm == null) return;
+
+        Map<Long, Long> votes = gm.getVotes();
+        if (votes.isEmpty()) return;
+
+        Map<Long, Long> counts = votes.values().stream()
+                .collect(Collectors.groupingBy(id -> id, Collectors.counting()));
+
+        Long topCandidateId = Collections.max(counts.entrySet(), Map.Entry.comparingByValue()).getKey();
+
+        User newMaster = userRepository.findById(topCandidateId).orElse(null);
+        if (newMaster != null) {
+            gm.setCurrentMaster(newMaster);
+            genreMasterRepository.save(gm);
+        }
+    }
+
+    private void grant(User user, String achievementName) {
+        boolean alreadyHas = user.getAchievements().stream()
+                .anyMatch(ua -> ua.getAchievement().getName().equals(achievementName));
+
+        if (!alreadyHas) {
+            Achievement ach = achievementRepository.findByName(achievementName);
+            if (ach != null) {
+                UserAchievement ua = new UserAchievement();
+                ua.setUser(user);
+                ua.setAchievement(ach);
+                user.getAchievements().add(ua);
+            }
+        }
+    }
+
+    private void checkTopPercentile(User user) {
+        long totalUsers = userRepository.count();
+        if (totalUsers < 10) return;
+
+        int userHorrorWins = user.getStatistics().getWinsByGenre().getOrDefault("Horror", 0);
+        long playersBetterThanMe = userRepository.findAll().stream()
+                .filter(u -> u.getStatistics().getWinsByGenre().getOrDefault("Horror", 0) > userHorrorWins)
+                .count();
+
+        if ((double) playersBetterThanMe / totalUsers <= 0.01 && userHorrorWins > 0) {
+            grant(user, "HORROR_LEGEND");
+        }
+    }
+}
