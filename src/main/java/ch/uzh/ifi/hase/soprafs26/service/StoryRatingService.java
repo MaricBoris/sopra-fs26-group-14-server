@@ -113,4 +113,12 @@ public class StoryRatingService {
         }
         return null;
     }
+
+    public Story changeTitle(Long storyId, String bearerToken, String newTitle){
+        Story story = getStory(storyId, bearerToken);
+        story.setTitle(newTitle);
+        storyRepository.save(story);
+        storyRepository.flush();
+        return story;
+    }
 }

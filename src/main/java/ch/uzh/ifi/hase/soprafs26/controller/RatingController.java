@@ -3,8 +3,10 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.entity.StoryRating;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.storyRating.GenreRatingGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.storyRating.GenreRatingPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.StoryRatingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -67,5 +69,15 @@ public class RatingController {
  
         out.setCanVote(!storyRatingService.hasParticipated(story, voter));
         return out;
+    }
+
+    @PutMapping("/story/{storyId}/title")
+    @ResponseStatus(HttpStatus.OK)
+    public StoryGetDTO changeTitle(
+            @PathVariable Long storyId,
+            @RequestHeader(value = "Authorization", required = false) String bearerToken, @RequestBody String newTitle) {
+
+        Story story = storyRatingService.changeTitle(storyId, bearerToken, newTitle);
+        return DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
     }
 }
