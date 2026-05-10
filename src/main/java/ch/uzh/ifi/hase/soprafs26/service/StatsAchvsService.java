@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.constant.AchievementType;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.*;
 import org.springframework.stereotype.Service;
@@ -67,13 +68,14 @@ public class StatsAchvsService {
     private void setUserAchievements(User user) {
         UserStatistics stats = user.getStatistics();
 
-        if (stats.getGamesPlayed() == 1) grant(user, "ROOKIE_SCRIBE");
-        if (stats.getGamesWon() >= 20) grant(user, "PUBLISHED_AUTHOR");
+        if (stats.getGamesPlayed() == 1) grant(user, AchievementType.ROOKIE_SCRIBE);
+        if (stats.getGamesWon() >= 20) grant(user, AchievementType.PUBLISHED_AUTHOR);
 
-        if (stats.getWinsByGenre().getOrDefault("Horror", 0) >= 10) grant(user, "MASTER_OF_MACABRE");
+        if (stats.getWinsByGenre().getOrDefault("Horror", 0) >= 10)
+            grant(user, AchievementType.MASTER_OF_MACABRE);
 
-        if (stats.getUnanimousWins() >= 1) grant(user, "CROWD_FAVORITE");
-        if (stats.getSuddenDeathWins() >= 1) grant(user, "SUDDEN_DEATH_SURVIVOR");
+        if (stats.getUnanimousWins() >= 1) grant(user, AchievementType.CROWD_FAVORITE);
+        if (stats.getSuddenDeathWins() >= 1) grant(user, AchievementType.SUDDEN_DEATH_SURVIVOR);
 
         checkTopPercentile(user);
     }
@@ -97,7 +99,8 @@ public class StatsAchvsService {
         }
     }
 
-    private void grant(User user, String achievementName) {
+    private void grant(User user, AchievementType type) {
+        String achievementName = type.name();
         boolean alreadyHas = user.getAchievements().stream()
                 .anyMatch(ua -> ua.getAchievement().getName().equals(achievementName));
 
@@ -122,7 +125,7 @@ public class StatsAchvsService {
                 .count();
 
         if ((double) playersBetterThanMe / totalUsers <= 0.01 && userHorrorWins > 0) {
-            grant(user, "HORROR_LEGEND");
+            grant(user, AchievementType.HORROR_LEGEND);
         }
     }
 }
