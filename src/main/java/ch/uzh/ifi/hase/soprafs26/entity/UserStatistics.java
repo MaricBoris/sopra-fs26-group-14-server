@@ -31,7 +31,7 @@ public class UserStatistics implements Serializable {
     private Integer totalVotesCast = 0;
 
     // --- GENRE MASTERY (The Core of S34) ---
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "USER_GENRE_WINS", joinColumns = @JoinColumn(name = "statistics_id"))
     @MapKeyColumn(name = "genre_name")
     @Column(name = "win_count")

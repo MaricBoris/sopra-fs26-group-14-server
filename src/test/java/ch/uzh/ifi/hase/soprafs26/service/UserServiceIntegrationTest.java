@@ -6,6 +6,7 @@ import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -415,5 +416,22 @@ public class UserServiceIntegrationTest {
         
         assertEquals(1, result1.size());
         assertEquals(1, result2.size());
+    }
+
+    // --- User Statistics Integration ---
+
+    @Test
+    public void getUserStatistics_newlyCreatedUser_hasEmptyStats() {
+        User user = new User();
+        user.setUsername("statCheck");
+        user.setPassword("password");
+        user = userService.createUser(user);
+
+        ch.uzh.ifi.hase.soprafs26.entity.UserStatistics stats = userService.getUserStatistics(user.getId(), "Bearer " + user.getToken());
+
+        assertNotNull(stats);
+        assertEquals(0, stats.getGamesPlayed());
+        assertEquals(0, stats.getGamesWon());
+        assertTrue(stats.getWinsByGenre().isEmpty());
     }
 }

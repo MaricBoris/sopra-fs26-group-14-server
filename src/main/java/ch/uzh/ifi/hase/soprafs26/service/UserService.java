@@ -284,5 +284,19 @@ public class UserService {
         return false;
     }
 
+    public UserStatistics getUserStatistics(Long userId, String bearerToken) {
+        // 1. Ensure the requester is authenticated
+        findUserFromToken(extractToken(bearerToken));
 
+        // 2. Find the user whose stats we want
+        User user = findUserFromId(userId);
+
+        // 3. Return the stats object (should not be null since we initialize it in createUser)
+        UserStatistics stats = user.getStatistics();
+        if (stats == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Statistics for this user were not found.");
+        }
+
+        return stats;
+    }
 }

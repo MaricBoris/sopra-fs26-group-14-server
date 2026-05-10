@@ -9,4 +9,6 @@ import java.util.List;
 @Repository("userAchievementRepository")
 public interface UserAchievementRepository extends JpaRepository<UserAchievement, Long> {
     List<UserAchievement> findByUser(User user);
+    List<UserAchievement> findByAchievementId(Long achievementId);
+    List<UserAchievement> findByUserId(Long userId);
 }

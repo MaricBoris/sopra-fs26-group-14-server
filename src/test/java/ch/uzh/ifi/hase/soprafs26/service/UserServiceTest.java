@@ -594,4 +594,29 @@ public class UserServiceTest {
   
         assertTrue(result);
     }
+
+    // --- USER STATISTICS (getUserStatistics) ---
+
+    @Test
+    public void getUserStatistics_validId_success() {
+        ch.uzh.ifi.hase.soprafs26.entity.UserStatistics stats = new ch.uzh.ifi.hase.soprafs26.entity.UserStatistics();
+        stats.setGamesPlayed(5);
+        testUser.setStatistics(stats);
+
+        Mockito.when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+
+        ch.uzh.ifi.hase.soprafs26.entity.UserStatistics result = userService.getUserStatistics(1L, "Bearer some-token");
+
+        assertNotNull(result);
+        assertEquals(5, result.getGamesPlayed());
+    }
+
+    @Test
+    public void getUserStatistics_userNotFound_throws404() {
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+        Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> userService.getUserStatistics(99L, "Bearer token"));
+    }
 }
