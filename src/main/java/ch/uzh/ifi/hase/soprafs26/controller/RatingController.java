@@ -71,7 +71,7 @@ public class RatingController {
         return out;
     }
 
-    @PutMapping("/story/{storyId}/title")
+    @PutMapping("/stories/{storyId}/title")
     @ResponseStatus(HttpStatus.OK)
     public StoryGetDTO changeTitle(
             @PathVariable Long storyId,
