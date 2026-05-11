@@ -181,6 +181,6 @@ public class GameController {
 
         Game game = gameService.reduceTime(gameId, bearerToken);
         return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
-    }
+    }    
 }
 

@@ -30,6 +30,8 @@ public class Story implements Serializable {
 
     private String loseGenre;
 
+    private String title;
+
     @ManyToMany
     private List<User> judges = new ArrayList<>();
 
@@ -93,4 +95,7 @@ public class Story implements Serializable {
 
     public String getTieBreakerQuote() { return tieBreakerQuote; }
     public void setTieBreakerQuote(String tieBreakerQuote) { this.tieBreakerQuote = tieBreakerQuote; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 }

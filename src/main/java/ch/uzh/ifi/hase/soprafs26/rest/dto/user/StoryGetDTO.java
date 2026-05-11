@@ -14,6 +14,7 @@ public class StoryGetDTO {
     private Date creationDate;
     private String objective;
     private String tieBreakerQuote;
+    private String title;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -44,4 +45,7 @@ public class StoryGetDTO {
 
     public String getTieBreakerQuote() { return tieBreakerQuote; }
     public void setTieBreakerQuote(String tieBreakerQuote) { this.tieBreakerQuote = tieBreakerQuote; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 }
