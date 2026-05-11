@@ -85,7 +85,8 @@ public interface DTOMapper {
     @Mapping(source = "timestamp", target = "timestamp")
     ChatMessageGetDTO convertEntityToChatMessageGetDTO(ChatMessage chatMessage);
 
-    @Mapping(source = "storyText", target = "storyText")
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "storyContributions", target = "storyContributions")
     @Mapping(source = "hasWinner", target = "hasWinner")
     @Mapping(source = "winGenre", target = "winGenre")
     @Mapping(source = "loseGenre", target = "loseGenre")
@@ -93,6 +94,7 @@ public interface DTOMapper {
     @Mapping(source = "loser.username", target = "loserUsername")
     @Mapping(source = "objective", target = "objective")
     @Mapping(source = "tieBreakerQuote", target = "tieBreakerQuote")
+    @Mapping(source = "title", target = "title")
     StoryGetDTO convertEntityToStoryGetDTO(Story story);
 
     @Mapping(source = "id", target = "gameId")

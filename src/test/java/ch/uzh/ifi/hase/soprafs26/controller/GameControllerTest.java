@@ -258,7 +258,7 @@ public class GameControllerTest {
                 story.setId(300L);
                 story.setWinner(user1);
                 story.setLoser(user2);
-                story.setStoryText("Amazing story text.");
+                story.addContribution(1L, "Amazing story text.");
                 story.setHasWinner(true);
                 story.setWinGenre("Fantasy");
                 story.setLoseGenre("Sci-Fi");
@@ -316,7 +316,8 @@ public class GameControllerTest {
                 .andExpect(jsonPath("$.judges[0].insertions", is(1)))
 
                 .andExpect(jsonPath("$.story").exists())
-                .andExpect(jsonPath("$.story.storyText", is("Amazing story text.")))
+                .andExpect(jsonPath("$.story.storyContributions").exists())
+                .andExpect(jsonPath("$.story.storyContributions[0].text", is("Amazing story text.")))
                 .andExpect(jsonPath("$.story.hasWinner", is(true)))
                 .andExpect(jsonPath("$.story.winGenre", is("Fantasy")))
                 .andExpect(jsonPath("$.story.loseGenre", is("Sci-Fi")))
@@ -439,7 +440,8 @@ public class GameControllerTest {
                 .andExpect(jsonPath("$.judges[0].insertions", is(1)))
 
                 .andExpect(jsonPath("$.story").exists())
-                .andExpect(jsonPath("$.story.storyText", is("Amazing story text.")))
+                .andExpect(jsonPath("$.story.storyContributions").exists())
+                .andExpect(jsonPath("$.story.storyContributions[0].text", is("Amazing story text.")))
                 .andExpect(jsonPath("$.story.hasWinner", is(true)))
                 .andExpect(jsonPath("$.story.winGenre", is("Fantasy")))
                 .andExpect(jsonPath("$.story.loseGenre", is("Sci-Fi")))
