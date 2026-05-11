@@ -49,6 +49,9 @@ public class GameServiceTest {
     @Mock
     private GameStreamService gameStreamService;
 
+    @Mock
+    private StatsAchvsService statsAchvsService;
+
     @InjectMocks
     private GameService gameService;
 

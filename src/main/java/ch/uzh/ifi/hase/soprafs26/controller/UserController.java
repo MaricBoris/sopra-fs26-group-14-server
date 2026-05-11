@@ -1,5 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
+import ch.uzh.ifi.hase.soprafs26.entity.UserStatistics;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.stats.UserStatisticsGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -156,6 +158,14 @@ public class UserController {
         return userService.findAllStoriesOfUser(userId);                                                            
     }
 
-    
+    @GetMapping("/stats/user/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public UserStatisticsGetDTO getUserStatistics(@PathVariable Long userId,
+                                                  @RequestHeader("Authorization") String bearerToken) {
 
+        UserStatistics stats = userService.getUserStatistics(userId, bearerToken);
+
+        return DTOMapper.INSTANCE.convertEntityToUserStatisticsGetDTO(stats);
+    }
 }

@@ -1,12 +1,16 @@
 package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
 import ch.uzh.ifi.hase.soprafs26.entity.*;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.achvs.AchievementGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.achvs.GenreMasterGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.achvs.UserAchievementGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
 
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.ChatMessageGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.stats.UserStatisticsGetDTO;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
@@ -102,4 +106,38 @@ public interface DTOMapper {
     @Mapping(source = "phase", target = "phase")
     @Mapping(source = "maxRounds", target = "maxRounds")
     GameGetDTO convertEntityToGameGetDTO(Game game);
+
+    @Mapping(source = "gamesPlayed", target = "gamesPlayed")
+    @Mapping(source = "gamesWon", target = "gamesWon")
+    @Mapping(source = "gamesLost", target = "gamesLost")
+    @Mapping(source = "currentWinStreak", target = "currentWinStreak")
+    @Mapping(source = "highestWinStreak", target = "highestWinStreak")
+    @Mapping(source = "winsAsWriter", target = "winsAsWriter")
+    @Mapping(source = "winsAsJudge", target = "winsAsJudge")
+    @Mapping(source = "totalVotesCast", target = "totalVotesCast")
+    @Mapping(source = "winsByGenre", target = "winsByGenre")
+    @Mapping(source = "suddenDeathEntries", target = "suddenDeathEntries")
+    @Mapping(source = "suddenDeathWins", target = "suddenDeathWins")
+    @Mapping(source = "unanimousWins", target = "unanimousWins")
+    @Mapping(source = "totalWordsWritten", target = "totalWordsWritten")
+    UserStatisticsGetDTO convertEntityToUserStatisticsGetDTO(UserStatistics statistics);
+
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "name", target = "name")
+    @Mapping(source = "displayName", target = "displayName")
+    @Mapping(source = "description", target = "description")
+    @Mapping(source = "icon", target = "icon")
+    AchievementGetDTO convertEntityToAchievementGetDTO(Achievement achievement);
+
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "achievement", target = "achievement")
+    @Mapping(source = "unlockedAt", target = "unlockedAt")
+    @Mapping(source = "isDisplayed", target = "isDisplayed")
+    UserAchievementGetDTO convertEntityToUserAchievementGetDTO(UserAchievement userAchievement);
+
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "genre", target = "genre")
+    @Mapping(source = "currentMaster", target = "currentMaster")
+    @Mapping(expression = "java(genreMaster.getVotes().size())", target = "totalVotesCast")
+    GenreMasterGetDTO convertEntityToGenreMasterGetDTO(GenreMaster genreMaster);
 }

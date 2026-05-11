@@ -29,6 +29,7 @@ public class GameService {
     private final UserService userService;
     private final GameStreamService gameStreamService;
     private final GameCleanupService gameCleanupService;
+    private final StatsAchvsService statsAchvsService;
     private final QuoteService quoteService;
     private static final int time_reductions_per_writer = 1;
     private static final int reduced_time = 45;
@@ -38,7 +39,7 @@ public class GameService {
     "dr", "prof", "hr", "fr", "nr", "bspw", "evtl", "ggf", "inkl", "jr", "sr", "st", "mio", "mrd", "mr", "mrs", "ms", "vs", "e.g", "i.e"));
 
     @Autowired
-    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, StoryRepository storyRepository, QuoteService quoteService, GameCleanupService gameCleanupService, GameStreamService gameStreamService) {
+    public GameService(GameRepository gameRepository, UserService userService, UserRepository userRepository, StoryRepository storyRepository, QuoteService quoteService, GameCleanupService gameCleanupService, GameStreamService gameStreamService, StatsAchvsService statsAchvsService) {
         this.gameRepository = gameRepository;
         this.storyRepository = storyRepository;
         this.userService = userService;
@@ -46,6 +47,7 @@ public class GameService {
         this.quoteService = quoteService;
         this.gameCleanupService = gameCleanupService;
         this.gameStreamService = gameStreamService;
+        this.statsAchvsService = statsAchvsService;
     }
 
     public Game getGame(Long id, String bearerToken) {
@@ -462,6 +464,17 @@ public class GameService {
             // --- 2. NORMAL RESOLUTION ---
             updateStory(winner, game);
             updateHistory(game);
+
+            Map<Judge, Writer> votes = gameVotes.get(game.getId());
+            int voteCountForWinner = 0;
+            for (Writer v : votes.values()) {
+                if (v.getId().equals(winner.getId())) {
+                    voteCountForWinner++;
+                }
+            }
+            boolean isUnanimous = (voteCountForWinner == game.getJudges().size());
+            statsAchvsService.processGameResults(game, isUnanimous);
+
             cleanupGame(game);
         }
 

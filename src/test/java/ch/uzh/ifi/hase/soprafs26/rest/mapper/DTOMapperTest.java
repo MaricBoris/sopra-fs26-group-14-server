@@ -4,6 +4,7 @@ import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.stats.UserStatisticsGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.Test;
 
@@ -172,5 +173,23 @@ public class DTOMapperTest {
         UserDeleteDTO userDeleteDTO = new UserDeleteDTO();
         userDeleteDTO.setPassword("permanentDeletePassword");
         assertEquals("permanentDeletePassword", userDeleteDTO.getPassword());
+    }
+
+    // --- STATISTICS MAPPING ---
+
+    @Test
+    public void convertEntityToUserStatisticsGetDTO_success() {
+        ch.uzh.ifi.hase.soprafs26.entity.UserStatistics stats = new ch.uzh.ifi.hase.soprafs26.entity.UserStatistics();
+        stats.setGamesPlayed(50);
+        stats.setGamesWon(25);
+        stats.setHighestWinStreak(5);
+        stats.getWinsByGenre().put("Sci-Fi", 12);
+
+        UserStatisticsGetDTO dto = DTOMapper.INSTANCE.convertEntityToUserStatisticsGetDTO(stats);
+
+        assertEquals(50, dto.getGamesPlayed());
+        assertEquals(25, dto.getGamesWon());
+        assertEquals(5, dto.getHighestWinStreak());
+        assertEquals(12, dto.getWinsByGenre().get("Sci-Fi"));
     }
 }
