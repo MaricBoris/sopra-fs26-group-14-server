@@ -106,6 +106,7 @@ public interface DTOMapper {
     @Mapping(source = "currentRound", target = "currentRound")
     @Mapping(source = "phase", target = "phase")
     @Mapping(source = "maxRounds", target = "maxRounds")
+    @Mapping(expression = "java(game.getTimer() != null ? Math.round(game.getTimer() * 0.5) : 45L)", target = "reducedTimeThreshold")
     GameGetDTO convertEntityToGameGetDTO(Game game);
 
     @Mapping(source = "gamesPlayed", target = "gamesPlayed")

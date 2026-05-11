@@ -30,8 +30,6 @@ public class Story implements Serializable {
 
     private String loseGenre;
 
-    private String title;
-
     @ManyToMany
     private List<User> judges = new ArrayList<>();
 
