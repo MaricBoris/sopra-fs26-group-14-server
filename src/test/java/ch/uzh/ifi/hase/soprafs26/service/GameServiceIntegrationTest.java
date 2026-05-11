@@ -48,6 +48,9 @@ public class GameServiceIntegrationTest {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private StatsAchvsService statsAchvsService;
+
     private User user1;
     private User user2;
     private User user3;

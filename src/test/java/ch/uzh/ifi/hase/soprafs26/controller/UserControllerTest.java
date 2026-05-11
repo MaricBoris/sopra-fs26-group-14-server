@@ -392,5 +392,22 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.detail", containsString("Error: The provided id")));
     }
 
-        
+    // --- USER STATISTICS (GET /stats/user/{userId}) ---
+
+    @Test
+    public void getUserStatistics_validId_200Ok() throws Exception {
+        ch.uzh.ifi.hase.soprafs26.entity.UserStatistics stats = new ch.uzh.ifi.hase.soprafs26.entity.UserStatistics();
+        stats.setGamesPlayed(10);
+        stats.setGamesWon(7);
+        stats.getWinsByGenre().put("Horror", 3);
+
+        given(userService.getUserStatistics(anyLong(), anyString())).willReturn(stats);
+
+        mockMvc.perform(get("/stats/user/1")
+                        .header("Authorization", "Bearer some-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gamesPlayed", is(10)))
+                .andExpect(jsonPath("$.gamesWon", is(7)))
+                .andExpect(jsonPath("$.winsByGenre.Horror", is(3)));
+    }
 }
