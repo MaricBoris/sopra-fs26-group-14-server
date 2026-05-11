@@ -521,7 +521,6 @@ public class GameServiceTest {
 
         Judge judge = new Judge(judgeUser); judge.setId(1L);
         Story existingStory = new Story();
-        existingStory.setStoryText("Once upon a time...");
 
         Game game = new Game();
         game.setId(1L);
@@ -556,7 +555,6 @@ public class GameServiceTest {
 
         Judge judge = new Judge(judgeUser); judge.setId(1L);
         Story existingStory = new Story();
-        existingStory.setStoryText("A tie story...");
 
         Game game = new Game();
         game.setId(1L);
@@ -892,14 +890,12 @@ public class GameServiceTest {
         when(userRepository.findByToken("active-token")).thenReturn(activeUser);
         when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        String tooLongInput = "x".repeat(2001);
+        String tooLongInput = "x".repeat(1995) + " end.y";
 
         Game result = gameService.insertWriterInput(1L, 1, tooLongInput, "Bearer active-token");
 
-        String savedText = result.getStory().getStoryText();
-
-        assertNotNull(savedText);
-        assertTrue(savedText.length() <= 2000);
+        assertFalse(result.getStory().getStoryContributions().isEmpty());
+        assertTrue(result.getStory().getStoryContributions().get(0).getText().length() <= 2000);
     }
 
    /* @Test
@@ -960,7 +956,8 @@ public class GameServiceTest {
         Game result = gameService.insertWriterInput(1L, 1, "first sentence", "Bearer active-token");
 
         assertNotNull(result.getStory());
-        assertEquals("first sentence", result.getStory().getStoryText());
+        assertFalse(result.getStory().getStoryContributions().isEmpty());
+        assertEquals("first sentence", result.getStory().getStoryContributions().get(0).getText());
     }
 
     @Test
@@ -972,7 +969,6 @@ public class GameServiceTest {
 
         Game game = makeGame(activeWriter, otherWriter, judge);
         Story story = new Story();
-        story.setStoryText(""); // blank story
         game.setStory(story);
 
         User activeUser = makeUser(1L);
@@ -983,7 +979,8 @@ public class GameServiceTest {
 
         Game result = gameService.insertWriterInput(1L, 1, "first sentence", "Bearer active-token");
 
-        assertEquals("first sentence", result.getStory().getStoryText());
+        assertFalse(result.getStory().getStoryContributions().isEmpty());
+        assertEquals("first sentence", result.getStory().getStoryContributions().get(0).getText()); 
     }
 
     @Test

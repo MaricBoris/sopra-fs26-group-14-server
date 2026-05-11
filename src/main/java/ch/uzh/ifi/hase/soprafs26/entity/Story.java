@@ -21,8 +21,8 @@ public class Story implements Serializable {
     @ManyToOne
     private User loser;
 
-    @Column(columnDefinition = "TEXT")
-    private String storyText;
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StoryContribution> storyContributions = new ArrayList<>();
 
     private Boolean hasWinner;
 
@@ -44,16 +44,18 @@ public class Story implements Serializable {
     @Column
     private String tieBreakerQuote;
 
+    @Column
+    private String title;
+
     public Story() {
-        this.storyText = "";
         this.hasWinner = false;
         this.creationDate = new Date();
     }
 
-    public Story(User winner, User loser, String storyText, Boolean hasWinner, String winGenre, String loseGenre, List<User> judges) {
+    public Story(User winner, User loser, List<StoryContribution> storyContributions, Boolean hasWinner, String winGenre, String loseGenre, List<User> judges) {
         this.winner = winner;
         this.loser = loser;
-        this.storyText = storyText;
+        this.storyContributions = storyContributions;
         this.hasWinner = hasWinner;
         this.winGenre = winGenre;
         this.loseGenre = loseGenre;
@@ -62,6 +64,9 @@ public class Story implements Serializable {
         this.tieBreakerQuote = "";
     }
 
+    public void addContribution(Long userId, String text) {
+        this.storyContributions.add(new StoryContribution(userId, text));
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -72,8 +77,8 @@ public class Story implements Serializable {
     public User getLoser() { return loser; }
     public void setLoser(User loser) { this.loser = loser; }
 
-    public String getStoryText() { return storyText; }
-    public void setStoryText(String text) { this.storyText = text; }
+    public List<StoryContribution> getStoryContributions() { return storyContributions; }
+    public void setStoryContributions(List<StoryContribution> storyContributions) { this.storyContributions = storyContributions; }
 
     public Boolean getHasWinner() { return hasWinner; }
     public void setHasWinner(Boolean hasWinner) { this.hasWinner = hasWinner; }
