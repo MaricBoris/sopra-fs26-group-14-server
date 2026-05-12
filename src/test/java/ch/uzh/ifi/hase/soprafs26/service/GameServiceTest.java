@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Map;
 
+import ch.uzh.ifi.hase.soprafs26.entity.StoryContribution;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -520,8 +523,8 @@ public class GameServiceTest {
         loserWriter.setUser(loserUser); loserWriter.setGenre("Comedy");
 
         Judge judge = new Judge(judgeUser); judge.setId(1L);
+
         Story existingStory = new Story();
-        existingStory.setStoryText("Once upon a time...");
 
         Game game = new Game();
         game.setId(1L);
@@ -530,6 +533,7 @@ public class GameServiceTest {
         game.setStory(existingStory);
 
         when(gameRepository.save(any())).thenReturn(game);
+        when(storyRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         Story result = gameService.updateStory(winnerWriter, game);
 
@@ -538,7 +542,6 @@ public class GameServiceTest {
         assertEquals("Horror", result.getWinGenre());
         assertEquals("Comedy", result.getLoseGenre());
         assertTrue(result.getHasWinner());
-        // verify based on your current implementation (save vs saveAndFlush)
         verify(gameRepository, atLeastOnce()).save(any());
     }
 
@@ -556,7 +559,7 @@ public class GameServiceTest {
 
         Judge judge = new Judge(judgeUser); judge.setId(1L);
         Story existingStory = new Story();
-        existingStory.setStoryText("A tie story...");
+       
 
         Game game = new Game();
         game.setId(1L);
@@ -892,14 +895,12 @@ public class GameServiceTest {
         when(userRepository.findByToken("active-token")).thenReturn(activeUser);
         when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        String tooLongInput = "x".repeat(2001);
+        String tooLongInput = "x".repeat(1995) + " end.y";
 
         Game result = gameService.insertWriterInput(1L, 1, tooLongInput, "Bearer active-token");
-
-        String savedText = result.getStory().getStoryText();
-
-        assertNotNull(savedText);
-        assertTrue(savedText.length() <= 2000);
+        assertFalse(result.getStory().getStoryContributions().isEmpty());
+        assertTrue(result.getStory().getStoryContributions().get(0).getText().length() <= 2000);
+        
     }
 
    /* @Test
@@ -960,7 +961,8 @@ public class GameServiceTest {
         Game result = gameService.insertWriterInput(1L, 1, "first sentence", "Bearer active-token");
 
         assertNotNull(result.getStory());
-        assertEquals("first sentence", result.getStory().getStoryText());
+        assertFalse(result.getStory().getStoryContributions().isEmpty());
+        assertEquals("first sentence", result.getStory().getStoryContributions().get(0).getText());
     }
 
     @Test
@@ -972,7 +974,6 @@ public class GameServiceTest {
 
         Game game = makeGame(activeWriter, otherWriter, judge);
         Story story = new Story();
-        story.setStoryText(""); // blank story
         game.setStory(story);
 
         User activeUser = makeUser(1L);
@@ -983,7 +984,8 @@ public class GameServiceTest {
 
         Game result = gameService.insertWriterInput(1L, 1, "first sentence", "Bearer active-token");
 
-        assertEquals("first sentence", result.getStory().getStoryText());
+        assertFalse(result.getStory().getStoryContributions().isEmpty());
+        assertEquals("first sentence", result.getStory().getStoryContributions().get(0).getText()); 
     }
 
     @Test

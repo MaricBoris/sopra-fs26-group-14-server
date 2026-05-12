@@ -283,14 +283,14 @@ public class UserControllerTest {
     @Test
     public void getStoryById_validInput_200Ok() throws Exception {
         StoryGetDTO story = new StoryGetDTO();
-        story.setStoryText("Once upon a time...");
+        story.setStoryContributions(new ArrayList<>());
 
         given(userService.findStoryById(anyLong())).willReturn(story);
 
         mockMvc.perform(get("/results/story/1")
                         .header("Authorization", "Bearer token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.storyText", is("Once upon a time...")));
+                .andExpect(jsonPath("$.storyContributions").exists());
     }
 
     @Test

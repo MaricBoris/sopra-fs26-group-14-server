@@ -13,6 +13,9 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import ch.uzh.ifi.hase.soprafs26.entity.StoryContribution;
+import java.util.List;
+
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,7 +49,8 @@ public class StoryRatingServiceTest {
 
         testStory = new Story();
         testStory.setId(1L);
-        testStory.setStoryText("Some story text.");
+        testStory.setStoryContributions(List.of(new StoryContribution(1L, "Some story text.")));
+
         testStory.setTitle(null);
 
         Mockito.when(userService.extractToken("Bearer valid-token")).thenReturn("valid-token");
