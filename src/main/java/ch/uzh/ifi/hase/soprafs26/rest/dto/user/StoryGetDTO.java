@@ -1,11 +1,14 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto.user;
 
+import ch.uzh.ifi.hase.soprafs26.entity.StoryContribution;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class StoryGetDTO {
 
     private Long id;
-    private String storyText;
+    private List<StoryContribution> storyContributions = new ArrayList<>();
     private Boolean hasWinner;
     private String winGenre;
     private String loseGenre;
@@ -19,8 +22,8 @@ public class StoryGetDTO {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public String getStoryText() { return storyText; }
-    public void setStoryText(String storyText) { this.storyText = storyText; }
+    public List<StoryContribution> getStoryContributions() { return storyContributions; }
+    public void setStoryContributions(List<StoryContribution> storyContributions) { this.storyContributions = storyContributions; }
 
     public Boolean getHasWinner() { return hasWinner; }
     public void setHasWinner(Boolean hasWinner) { this.hasWinner = hasWinner; }

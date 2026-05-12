@@ -13,6 +13,7 @@ import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class DTOMapperTest {
 
@@ -101,9 +102,9 @@ public class DTOMapperTest {
     public void convertEntityToStoryGetDTO_success() {
         User winner = new User(); winner.setUsername("win");
         User loser = new User(); loser.setUsername("loss");
-        Story story = new Story(winner, loser, "Old text", true, "WinG", "LoseG", new ArrayList<>());
+        Story story = new Story(winner, loser, new ArrayList<>(), true, "WinG", "LoseG", new ArrayList<>());
 
-        story.setStoryText("New story text");
+        story.addContribution(1L, "New story text");
         story.setObjective("Incorporate a red apple"); // New Field
         story.setTieBreakerQuote("Life is a journey"); // New Field
 
@@ -112,7 +113,8 @@ public class DTOMapperTest {
 
         StoryGetDTO storyGetDTO = DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
 
-        assertEquals("New story text", storyGetDTO.getStoryText());
+        assertFalse(storyGetDTO.getStoryContributions().isEmpty());
+        assertEquals("New story text", storyGetDTO.getStoryContributions().get(0).getText());
         assertEquals(winner.getUsername(), storyGetDTO.getWinnerUsername());
         assertEquals("Incorporate a red apple", storyGetDTO.getObjective());
         assertEquals("Life is a journey", storyGetDTO.getTieBreakerQuote());
