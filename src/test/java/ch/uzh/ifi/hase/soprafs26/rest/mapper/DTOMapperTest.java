@@ -8,6 +8,7 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.stats.UserStatisticsGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.Test;
 
+
 import java.util.ArrayList;
 import java.util.Date;
 

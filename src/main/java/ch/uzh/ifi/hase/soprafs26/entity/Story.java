@@ -44,6 +44,9 @@ public class Story implements Serializable {
     @Column
     private String tieBreakerQuote;
 
+    @Column
+    private String title;
+
     public Story() {
         this.hasWinner = false;
         this.creationDate = new Date();
