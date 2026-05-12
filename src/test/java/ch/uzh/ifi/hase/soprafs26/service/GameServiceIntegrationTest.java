@@ -219,7 +219,7 @@ public class GameServiceIntegrationTest {
 
         Judge judge = new Judge(user1);
 
-        Story initialStory = new Story(null, null, new ArrayList<>(), false, null, null, new ArrayList<>());
+        Story initialStory = new Story(null, null, "Once upon a time...", false, null, null, new ArrayList<>());
 
 
         Game game = new Game();

@@ -85,8 +85,7 @@ public interface DTOMapper {
     @Mapping(source = "timestamp", target = "timestamp")
     ChatMessageGetDTO convertEntityToChatMessageGetDTO(ChatMessage chatMessage);
 
-    @Mapping(source = "id", target = "id")
-    @Mapping(source = "storyContributions", target = "storyContributions")
+    @Mapping(source = "storyText", target = "storyText")
     @Mapping(source = "hasWinner", target = "hasWinner")
     @Mapping(source = "winGenre", target = "winGenre")
     @Mapping(source = "loseGenre", target = "loseGenre")
