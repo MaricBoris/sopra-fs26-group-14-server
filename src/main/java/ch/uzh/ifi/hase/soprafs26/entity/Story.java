@@ -30,6 +30,9 @@ public class Story implements Serializable {
 
     private String loseGenre;
 
+    @Column
+    private String title;
+
     @ManyToMany
     private List<User> judges = new ArrayList<>();
 
@@ -41,9 +44,6 @@ public class Story implements Serializable {
 
     @Column
     private String tieBreakerQuote;
-
-    @Column
-    private String title;
 
     public Story() {
         this.hasWinner = false;
@@ -65,6 +65,7 @@ public class Story implements Serializable {
     public void addContribution(Long userId, String text) {
         this.storyContributions.add(new StoryContribution(userId, text));
     }
+
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

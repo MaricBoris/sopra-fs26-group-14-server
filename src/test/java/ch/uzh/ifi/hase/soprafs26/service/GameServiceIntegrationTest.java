@@ -235,6 +235,7 @@ public class GameServiceIntegrationTest {
         assertEquals(user3, result.getLoser());
         assertEquals("Horror", result.getWinGenre());
         assertEquals("Comedy", result.getLoseGenre());
+        
 
         Game reloaded = gameRepository.findById(game.getId()).orElse(null);
         assertNotNull(reloaded);

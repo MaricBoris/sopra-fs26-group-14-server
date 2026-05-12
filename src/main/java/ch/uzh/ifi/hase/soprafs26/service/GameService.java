@@ -187,7 +187,7 @@ public class GameService {
             playedGame.setStory(story);
         }
         
-        
+
         if (!clean.isBlank()) {
             story.addContribution(writer.getUser().getId(), clean);
         }

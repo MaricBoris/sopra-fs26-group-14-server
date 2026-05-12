@@ -521,6 +521,7 @@ public class GameServiceTest {
 
         Judge judge = new Judge(judgeUser); judge.setId(1L);
         Story existingStory = new Story();
+       
 
         Game game = new Game();
         game.setId(1L);
@@ -555,6 +556,7 @@ public class GameServiceTest {
 
         Judge judge = new Judge(judgeUser); judge.setId(1L);
         Story existingStory = new Story();
+        
 
         Game game = new Game();
         game.setId(1L);
@@ -980,7 +982,7 @@ public class GameServiceTest {
         Game result = gameService.insertWriterInput(1L, 1, "first sentence", "Bearer active-token");
 
         assertFalse(result.getStory().getStoryContributions().isEmpty());
-        assertEquals("first sentence", result.getStory().getStoryContributions().get(0).getText()); 
+        assertEquals("first sentence", result.getStory().getStoryContributions().get(0).getText());
     }
 
     @Test

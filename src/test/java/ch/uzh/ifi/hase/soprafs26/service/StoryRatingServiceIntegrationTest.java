@@ -14,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import ch.uzh.ifi.hase.soprafs26.entity.StoryContribution;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -55,7 +57,7 @@ public class StoryRatingServiceIntegrationTest {
         testUser = userService.createUser(testUser);
 
         testStory = new Story();
-        testStory.setStoryText("Some story text.");
+        testStory.setStoryContributions(List.of(new StoryContribution(1L, "Some story text.")));
         testStory = storyRepository.save(testStory);
         storyRepository.flush();
     }
