@@ -65,7 +65,7 @@ public class GameStreamServiceTest {
         game.setWriters(writers);
 
         Story story = new Story();
-        story.addContribution(1L, "Story text");
+        story.setStoryText("Story text");
         story.setCreationDate(new Date());
         game.setStory(story);
 
