@@ -13,10 +13,9 @@ public class GameGetDTO {
     private List<WriterGetDTO> writers;
     private List<JudgeGetDTO> judges;
     private int currentRound;
-
     private Long turnStartedAt;
-
     private StoryGetDTO story;
+    private Long reducedTimeThreshold;
 
 
     public Long getGameId() {
@@ -78,4 +77,6 @@ public class GameGetDTO {
     public String getPhase() { return phase; }
     public void setPhase(String phase) { this.phase = phase; }
 
+    public Long getReducedTimeThreshold() { return reducedTimeThreshold; }
+    public void setReducedTimeThreshold(Long reducedTimeThreshold) { this.reducedTimeThreshold = reducedTimeThreshold; }
 }

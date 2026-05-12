@@ -32,7 +32,7 @@ public class GameService {
     private final StatsAchvsService statsAchvsService;
     private final QuoteService quoteService;
     private static final int time_reductions_per_writer = 1;
-    private static final int reduced_time = 45;
+    private static final double REDUCE_TIME_FRACTION = 0.5;
 
     
     private final List<String> abbreviations = new ArrayList<>(List.of( "z.b", "bzw", "usw", "etc", "d.h", "u.a", "ca", "vgl",
@@ -704,11 +704,12 @@ public class GameService {
         long elapsedMs = System.currentTimeMillis() - game.getTurnStartedAt();
         long remainingSec = game.getTimer() - (elapsedMs / 1000);
 
-        if (remainingSec <= reduced_time) {
+        long reducedTimeSec = Math.round(game.getTimer() * REDUCE_TIME_FRACTION);
+        if (remainingSec <= reducedTimeSec) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Remaining time is already at or below the reduction threshold");
         }
-        long newElapsedMs = ((long) game.getTimer() - reduced_time) * 1000L;
+        long newElapsedMs = (game.getTimer() - reducedTimeSec) * 1000L;
         game.setTurnStartedAt(System.currentTimeMillis() - newElapsedMs);
         activeWriter.setReduceTimeReceived(activeWriter.getReduceTimeReceived() + 1);
         gameRepository.save(game);
