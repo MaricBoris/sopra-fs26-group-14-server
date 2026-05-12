@@ -187,9 +187,16 @@ public class GameService {
             playedGame.setStory(story);
         }
         
-        
+        if(story.getStoryText()==null){
+            story.setStoryText("");
+        }
         if (!clean.isBlank()) {
-            story.addContribution(writer.getUser().getId(), clean);
+            String currentStory = story.getStoryText();
+            if (currentStory.isBlank()) {
+                story.setStoryText(clean);
+            } else {
+                story.setStoryText(currentStory + " " + clean);
+            }
         }
 
         writer.setText("");
