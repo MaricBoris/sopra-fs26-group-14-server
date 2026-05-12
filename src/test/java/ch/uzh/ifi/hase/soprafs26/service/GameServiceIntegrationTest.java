@@ -219,7 +219,7 @@ public class GameServiceIntegrationTest {
 
         Judge judge = new Judge(user1);
 
-        Story initialStory = new Story(null, null, "Once upon a time...", false, null, null, new ArrayList<>());
+        Story initialStory = new Story(null, null, new ArrayList<>(), false, null, null, new ArrayList<>());
 
 
         Game game = new Game();
@@ -235,7 +235,7 @@ public class GameServiceIntegrationTest {
         assertEquals(user3, result.getLoser());
         assertEquals("Horror", result.getWinGenre());
         assertEquals("Comedy", result.getLoseGenre());
-        assertEquals("Once upon a time...", result.getStoryText());
+        
 
         Game reloaded = gameRepository.findById(game.getId()).orElse(null);
         assertNotNull(reloaded);
@@ -251,7 +251,7 @@ public class GameServiceIntegrationTest {
 
         Judge judge = new Judge(user1);
 
-        Story story = new Story(null, null, "A great tale", false, null, null, new ArrayList<>());
+        Story story = new Story(null, null, new ArrayList<>(), false, null, null, new ArrayList<>());
 
         Game game = new Game();
         game.setWriters(List.of(writer));

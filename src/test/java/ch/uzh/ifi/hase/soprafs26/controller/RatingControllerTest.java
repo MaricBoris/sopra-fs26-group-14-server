@@ -12,6 +12,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
+import ch.uzh.ifi.hase.soprafs26.entity.StoryContribution;
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.*;
@@ -33,7 +35,7 @@ public class RatingControllerTest {
         Story story = new Story();
         story.setId(id);
         story.setTitle(title);
-        story.setStoryText("Some story text.");
+        story.setStoryContributions(List.of(new StoryContribution(1L, "Some story text.")));
         story.setHasWinner(false);
         return story;
     }
