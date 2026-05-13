@@ -26,18 +26,21 @@ public class RoomService {
     private final RoomRepository roomRepository;
     private final GameRepository gameRepository;
     private final UserService userService;
+    private final GameService gameService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Autowired
-    public RoomService(@Qualifier("roomRepository") RoomRepository roomRepository, @Qualifier("gameRepository") GameRepository gameRepository, UserService userService) {
+    public RoomService(@Qualifier("roomRepository") RoomRepository roomRepository, @Qualifier("gameRepository") GameRepository gameRepository, UserService userService, GameService gameService) {
         this.roomRepository = roomRepository;
         this.gameRepository = gameRepository;
         this.userService = userService;
+         this.gameService = gameService;
     }
 
     public Room createRoom(Room newRoom, String bearerToken) {
         String token = userService.extractToken(bearerToken);
         User creator = userService.findUserFromToken(token);
+        gameService.deleteStaleGameForUser(creator); //lazy cleanup
 
         Room existingRoom = roomRepository.findByName(newRoom.getName());
         if (existingRoom != null) {
@@ -97,6 +100,7 @@ public class RoomService {
     public Room joinRoom(Long roomId, String bearerToken) {
         String token = userService.extractToken(bearerToken);
         User user = userService.findUserFromToken(token);
+        gameService.deleteStaleGameForUser(user); //lazy clean up
 
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,

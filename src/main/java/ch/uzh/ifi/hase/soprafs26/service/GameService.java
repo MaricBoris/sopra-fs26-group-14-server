@@ -685,6 +685,38 @@ public class GameService {
                         "No active game found for this user"));
     }
 
+    
+
+    /*If a user, that is supposed to still be in a game, and tries to start a new one, we delete the old one */
+    public void deleteStaleGameForUser(User user) {
+        Long userId = user.getId();
+
+        
+        for (Game game : gameRepository.findAll()) {
+
+            boolean isWriter = false;
+            for (Writer writer : game.getWriters()) {
+                if (writer.getUser().getId().equals(userId)) {
+                    isWriter = true;
+                    break;
+                }
+            }
+
+            boolean isJudge = false;
+            for (Judge judge : game.getJudges()) {
+                if (judge.getUser().getId().equals(userId)) {
+                    isJudge = true;
+                    break;
+                }
+            }
+           
+            if (isWriter || isJudge) {
+                deleteGame(game);
+                return;
+            }
+        }
+    }
+
     public Game assignQuote(Long id, Integer player, String bearerToken) {
         String token = userService.extractToken(bearerToken);
         Game playedGame = getandCheckGame(id, token);
