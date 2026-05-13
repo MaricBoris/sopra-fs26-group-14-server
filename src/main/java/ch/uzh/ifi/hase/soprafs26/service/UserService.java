@@ -183,6 +183,21 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password");
         }
 
+        List<Story> asWinner = storyRepository.findByWinner(user);
+        asWinner.forEach(s -> s.setWinner(null));
+        storyRepository.saveAll(asWinner);
+        storyRepository.flush(); 
+
+        List<Story> asLoser = storyRepository.findByLoser(user);
+        asLoser.forEach(s -> s.setLoser(null));
+        storyRepository.saveAll(asLoser);
+        storyRepository.flush(); 
+
+        List<Story> asJudge = storyRepository.findByJudgesContaining(user);
+        asJudge.forEach(s -> s.getJudges().remove(user));
+        storyRepository.saveAll(asJudge);
+        storyRepository.flush(); 
+
         userRepository.delete(user);
         userRepository.flush();
     }
