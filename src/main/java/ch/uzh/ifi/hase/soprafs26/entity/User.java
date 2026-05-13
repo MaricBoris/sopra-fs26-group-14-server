@@ -43,9 +43,6 @@ public class User implements Serializable {
     @Column(nullable = false, updatable = false)
     private Date creationDate = new Date();
 
-	@ManyToMany
-	private List<Story> history = new ArrayList<>();
-
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserAchievement> achievements = new ArrayList<>();
 
@@ -88,9 +85,6 @@ public class User implements Serializable {
     public Date getCreationDate() { return creationDate; }
 
     public void setCreationDate(Date creationDate) { this.creationDate = creationDate; }
-
-	public void addStory(Story story) { this.history.add(story); }
-	public List<Story> getHistory() { return history; }
 
     public List<UserAchievement> getAchievements() { return achievements; }
     public void setAchievements(List<UserAchievement> achievements) { this.achievements = achievements; }

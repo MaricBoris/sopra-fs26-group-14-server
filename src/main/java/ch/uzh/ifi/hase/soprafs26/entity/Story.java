@@ -16,9 +16,11 @@ public class Story implements Serializable {
     private Long id;
 
     @ManyToOne
+    @JoinColumn(name = "winner_id", nullable = true)
     private User winner;
 
     @ManyToOne
+    @JoinColumn(name = "loser_id", nullable = true)
     private User loser;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)

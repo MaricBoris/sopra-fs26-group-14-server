@@ -456,7 +456,6 @@ public class GameService {
         else {
             // --- 2. NORMAL RESOLUTION ---
             updateStory(winner, game);
-            updateHistory(game);
 
             Map<Judge, Writer> votes = gameVotes.get(game.getId());
             int voteCountForWinner = 0;
@@ -606,16 +605,6 @@ public class GameService {
         return story;
     }
 
-    public void updateHistory(Game currentGame){
-        for (Writer writer: currentGame.getWriters()){
-            writer.getUser().addStory(currentGame.getStory());
-            userRepository.save(writer.getUser());
-        }
-        for (Judge judge: currentGame.getJudges()){
-            judge.getUser().addStory(currentGame.getStory());
-            userRepository.save(judge.getUser());
-        }
-    } 
 
     public void cleanupGame(Game currentGame) {
         currentGame.setPhase(GamePhase.FINISHED);

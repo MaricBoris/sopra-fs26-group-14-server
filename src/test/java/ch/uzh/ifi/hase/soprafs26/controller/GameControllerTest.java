@@ -79,7 +79,6 @@ public class GameControllerTest {
         given(gameService.allJudgesVoted(any())).willReturn(true);
         given(gameService.determineWinner(any())).willReturn(writer);
         given(gameService.updateStory(any(), any())).willReturn(new Story());
-        doNothing().when(gameService).updateHistory(any());
         doNothing().when(gameService).clearVotes(any());
         doNothing().when(gameService).cleanupGame(any());
 
@@ -195,7 +194,6 @@ public class GameControllerTest {
                 user1.setBio("Married to my montbretias");
                 user1.setPassword("gardenlover");
                 user1.setCreationDate(new Date());
-                //user1.setHistory(new ArrayList<>());
 
                 // User 2
                 User user2 = new User();
@@ -205,7 +203,6 @@ public class GameControllerTest {
                 user2.setBio("Hugh Grants biggest fan");
                 user2.setPassword("TwoWeeksNotice");
                 user2.setCreationDate(new Date());
-                //user2.setHistory(new ArrayList<>());
 
                 // User 3
                 User user3 = new User();
@@ -215,7 +212,6 @@ public class GameControllerTest {
                 user3.setBio("I will most likely despise your writing");
                 user3.setPassword("ratatouille");
                 user3.setCreationDate(new Date());
-                //user3.setHistory(new ArrayList<>());
 
                 // Writer 1
                 Writer w1 = new Writer();
@@ -694,7 +690,6 @@ public void streamGame_validInput_200Ok() throws Exception {
 
         given(gameService.determineWinner(any())).willReturn(writer);
         given(gameService.updateStory(any(), any())).willReturn(new Story());
-        doNothing().when(gameService).updateHistory(any());
         doNothing().when(gameService).clearVotes(any());
         doNothing().when(gameService).cleanupGame(any());
 

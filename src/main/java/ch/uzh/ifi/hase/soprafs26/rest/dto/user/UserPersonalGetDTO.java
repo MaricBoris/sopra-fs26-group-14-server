@@ -9,7 +9,6 @@ public class UserPersonalGetDTO {
     private String bio;
     private String token;
     private Date creationDate;
-    //private History history;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -32,6 +31,4 @@ public class UserPersonalGetDTO {
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
 
-    //public History getHistory() { return history; }
-    //public void setHistory(History history) { this.history = history; }
 }
