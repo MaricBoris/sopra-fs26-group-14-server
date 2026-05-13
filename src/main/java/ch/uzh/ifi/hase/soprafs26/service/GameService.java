@@ -687,7 +687,7 @@ public class GameService {
 
     
 
-    /*If a user, that is supposed to still be in a game, and tries to start a new one, we delete the old one */
+    /*If a user, that is supposed to still be in a game, and tries to start a new one, we delete the old one 
     public void deleteStaleGameForUser(User user) {
         Long userId = user.getId();
 
@@ -715,7 +715,7 @@ public class GameService {
                 return;
             }
         }
-    }
+    }*/
 
     public Game assignQuote(Long id, Integer player, String bearerToken) {
         String token = userService.extractToken(bearerToken);
