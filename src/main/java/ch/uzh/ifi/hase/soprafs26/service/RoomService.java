@@ -234,7 +234,7 @@ public class RoomService {
         game.setCurrentRound(1);
         game.setTimer(room.getTimer());
         game.setMaxRounds(room.getMaxRounds());
-        game.setTurnStartedAt(System.currentTimeMillis());
+        game.setTurnStartedAt(System.currentTimeMillis() + 5000L);
         game.setRoundResolved(false);
 
         LinkedHashMap<String, String> darkGenres = new LinkedHashMap<>();

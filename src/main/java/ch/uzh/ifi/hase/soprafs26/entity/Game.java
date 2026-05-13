@@ -38,6 +38,8 @@ public class Game implements Serializable {
     @Column(nullable = false)
     private boolean roundResolved = false;
 
+    private Long startedAt = System.currentTimeMillis();
+
     public boolean isRoundResolved() {
     return roundResolved;
     }
@@ -71,6 +73,8 @@ public class Game implements Serializable {
     public GamePhase getPhase() { return phase; }
     public void setPhase(GamePhase phase) { this.phase = phase; }
 
+    public Long getStartedAt() { return startedAt; }
+    public void setStartedAt(Long startedAt) { this.startedAt = startedAt; }
 
     public void nextRound() {
         //setTimer(90L);

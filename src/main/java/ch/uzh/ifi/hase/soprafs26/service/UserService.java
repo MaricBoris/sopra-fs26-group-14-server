@@ -249,6 +249,7 @@ public class UserService {
         List<Story> results = storyRepository.findAll();
         List<StoryGetDTO> getResults = new ArrayList<>();
         for (Story story:results) {
+            if (story.getWinner() == null) continue; //filters junk stories
             StoryGetDTO getStory = DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
             getResults.add(getStory);
 
