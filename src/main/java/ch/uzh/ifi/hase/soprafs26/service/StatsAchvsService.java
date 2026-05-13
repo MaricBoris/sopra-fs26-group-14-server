@@ -49,7 +49,7 @@ public class StatsAchvsService {
         setUserAchievements(loser);
         judges.forEach(this::setUserAchievements);
 
-        setGenreMaster(genre);
+        setGenreMaster(game);
 
         userRepository.saveAll(judges);
         userRepository.save(winner);
@@ -80,23 +80,34 @@ public class StatsAchvsService {
         checkTopPercentile(user);
     }
 
-    private void setGenreMaster(String genre) {
+    private void setGenreMaster(Game game) {
+        Story story = game.getStory();
+        String genre = story.getWinGenre();
+        User winner = story.getWinner();
+
         GenreMaster gm = genreMasterRepository.findByGenre(genre);
-        if (gm == null) return;
-
-        Map<Long, Long> votes = gm.getVotes();
-        if (votes.isEmpty()) return;
-
-        Map<Long, Long> counts = votes.values().stream()
-                .collect(Collectors.groupingBy(id -> id, Collectors.counting()));
-
-        Long topCandidateId = Collections.max(counts.entrySet(), Map.Entry.comparingByValue()).getKey();
-
-        User newMaster = userRepository.findById(topCandidateId).orElse(null);
-        if (newMaster != null) {
-            gm.setCurrentMaster(newMaster);
-            genreMasterRepository.save(gm);
+        if (gm == null) {
+            gm = new GenreMaster();
+            gm.setGenre(genre);
+            gm = genreMasterRepository.save(gm);
         }
+
+        int pointsWon = story.getJudges().size();
+        Map<Long, Integer> globalVotes = gm.getVotes();
+
+        int currentLifetimeTotal = globalVotes.getOrDefault(winner.getId(), 0);
+        globalVotes.put(winner.getId(), currentLifetimeTotal + pointsWon);
+
+        if (!globalVotes.isEmpty()) {
+            Long topCandidateId = Collections.max(globalVotes.entrySet(), Map.Entry.comparingByValue()).getKey();
+
+            if (gm.getCurrentMaster() == null || !gm.getCurrentMaster().getId().equals(topCandidateId)) {
+                User newMaster = userRepository.findById(topCandidateId).orElse(null);
+                gm.setCurrentMaster(newMaster);
+            }
+        }
+
+        genreMasterRepository.save(gm);
     }
 
     private void grant(User user, AchievementType type) {

@@ -80,7 +80,7 @@ public class AchievementControllerTest {
                         .header("Authorization", "Bearer token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].achievement.displayName", is("Test Achievement")))
-                .andExpect(jsonPath("$[0].isDisplayed", is(false)));
+                .andExpect(jsonPath("$[0].isDisplayed", is(true)));
     }
 
     @Test

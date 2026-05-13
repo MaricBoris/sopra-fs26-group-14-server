@@ -131,6 +131,7 @@ public interface DTOMapper {
     @Mapping(source = "icon", target = "icon")
     AchievementGetDTO convertEntityToAchievementGetDTO(Achievement achievement);
 
+    @Mapping(source = "user.username", target = "username")
     @Mapping(source = "id", target = "id")
     @Mapping(source = "achievement", target = "achievement")
     @Mapping(source = "unlockedAt", target = "unlockedAt")
