@@ -2,8 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
-import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +31,18 @@ public class UserServiceTest {
 
     @Mock
     private StoryRepository storyRepository;
+
+    @Mock
+    private GenreMasterRepository genreMasterRepository;
+
+    @Mock
+    private UserStatisticsRepository userStatisticsRepository;
+
+    @Mock
+    private UserAchievementRepository  userAchievementRepository;
+
+    @Mock
+    private UserStatisticsRepository userStatisticsRepository2;
 
     @InjectMocks
     private UserService userService;

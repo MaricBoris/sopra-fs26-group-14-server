@@ -19,11 +19,11 @@ public class GenreMaster implements Serializable {
     @ManyToOne
     private User currentMaster;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "GENRE_VOTES", joinColumns = @JoinColumn(name = "genre_master_id"))
-    @MapKeyColumn(name = "voter_id")
-    @Column(name = "candidate_id")
-    private Map<Long, Long> votes = new HashMap<>();
+    @MapKeyColumn(name = "candidate_id")
+    @Column(name = "total_votes")
+    private Map<Long, Integer> votes = new HashMap<>();
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -34,6 +34,6 @@ public class GenreMaster implements Serializable {
     public User getCurrentMaster() { return currentMaster; }
     public void setCurrentMaster(User currentMaster) { this.currentMaster = currentMaster; }
 
-    public Map<Long, Long> getVotes() { return votes; }
-    public void setVotes(Map<Long, Long> votes) { this.votes = votes; }
+    public Map<Long, Integer> getVotes() { return votes; }
+    public void setVotes(Map<Long, Integer> votes) { this.votes = votes; }
 }
