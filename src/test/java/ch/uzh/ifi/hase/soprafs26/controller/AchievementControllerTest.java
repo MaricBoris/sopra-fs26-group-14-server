@@ -7,12 +7,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
-import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -92,5 +90,66 @@ public class AchievementControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].genre", is("Horror")))
                 .andExpect(jsonPath("$[0].currentMaster.username", is("testUser")));
+    }
+
+    // --- SINGLE RESOURCE LOOKUPS ---
+
+    @Test
+    public void getAchievementById_validId_200Ok() throws Exception {
+        given(achievementService.getAchievementById(anyLong())).willReturn(ach);
+
+        mockMvc.perform(get("/achievements/1")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.name", is("TEST_ACH")));
+    }
+
+    @Test
+    public void getGenreMasterById_validId_200Ok() throws Exception {
+        given(achievementService.getGenreMasterById(anyLong())).willReturn(master);
+
+        mockMvc.perform(get("/genres/masters/100")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(100)))
+                .andExpect(jsonPath("$.genre", is("Horror")))
+                .andExpect(jsonPath("$.currentMaster.username", is("testUser")));
+    }
+
+    // --- UNLOCKED ACHIEVEMENTS (TROPHIES) ---
+
+    @Test
+    public void getAllUnlocked_200Ok() throws Exception {
+        given(achievementService.getAllUnlockedAchievements()).willReturn(Collections.singletonList(uAch));
+
+        mockMvc.perform(get("/achievements/unlocked")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].username", is("testUser")))
+                .andExpect(jsonPath("$[0].achievement.displayName", is("Test Achievement")));
+    }
+
+    @Test
+    public void getUnlockedById_validId_200Ok() throws Exception {
+        given(achievementService.getUnlockedAchievementById(anyLong())).willReturn(uAch);
+
+        mockMvc.perform(get("/achievements/unlocked/10")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(10)))
+                .andExpect(jsonPath("$.username", is("testUser")));
+    }
+
+    @Test
+    public void getUnlockedByAchievement_validId_200Ok() throws Exception {
+        given(achievementService.getUnlockedByAchievementId(anyLong())).willReturn(Collections.singletonList(uAch));
+
+        mockMvc.perform(get("/achievements/1/unlocked")
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].achievement.id", is(1)));
     }
 }

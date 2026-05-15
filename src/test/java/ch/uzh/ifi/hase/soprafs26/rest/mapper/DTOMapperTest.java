@@ -2,18 +2,23 @@ package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
 import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
 import ch.uzh.ifi.hase.soprafs26.entity.*;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.achvs.AchievementGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.achvs.GenreMasterGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.achvs.UserAchievementGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.ChatMessageGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.stats.UserStatisticsGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DTOMapperTest {
 
@@ -193,5 +198,121 @@ public class DTOMapperTest {
         assertEquals(25, dto.getGamesWon());
         assertEquals(5, dto.getHighestWinStreak());
         assertEquals(12, dto.getWinsByGenre().get("Sci-Fi"));
+    }
+
+    // --- NEW ACHIEVEMENT & TROPHY MAPPING ---
+
+    @Test
+    public void convertEntityToAchievementGetDTO_success() {
+        Achievement achievement = new Achievement();
+        achievement.setId(1L);
+        achievement.setName("ROOKIE_SCRIBE");
+        achievement.setDisplayName("Rookie Scribe");
+        achievement.setDescription("First game finished");
+        achievement.setIcon("feather");
+
+        AchievementGetDTO dto = DTOMapper.INSTANCE.convertEntityToAchievementGetDTO(achievement);
+
+        assertEquals(achievement.getName(), dto.getName());
+        assertEquals(achievement.getDisplayName(), dto.getDisplayName());
+        assertEquals("feather", dto.getIcon());
+    }
+
+    @Test
+    public void convertEntityToUserAchievementGetDTO_success() {
+        User user = new User();
+        user.setUsername("trophyWinner");
+
+        Achievement ach = new Achievement();
+        ach.setDisplayName("Legend");
+
+        UserAchievement ua = new UserAchievement();
+        ua.setId(500L);
+        ua.setUser(user);
+        ua.setAchievement(ach);
+        ua.setUnlockedAt(new Date());
+        ua.setIsDisplayed(true);
+
+        UserAchievementGetDTO dto = DTOMapper.INSTANCE.convertEntityToUserAchievementGetDTO(ua);
+
+        assertNotNull(dto);
+        assertEquals("trophyWinner", dto.getUsername());
+        assertEquals("Legend", dto.getAchievement().getDisplayName());
+        assertTrue(dto.getIsDisplayed());
+    }
+
+    // --- NEW GENRE MASTER MAPPING ---
+
+    @Test
+    public void convertEntityToGenreMasterGetDTO_success() {
+        User king = new User();
+        king.setUsername("TheMaster");
+
+        GenreMaster gm = new GenreMaster();
+        gm.setId(1L);
+        gm.setGenre("Horror");
+        gm.setCurrentMaster(king);
+
+        Map<Long, Integer> votes = new HashMap<>();
+        votes.put(101L, 10);
+        votes.put(102L, 5);
+        votes.put(103L, 2);
+        gm.setVotes(votes);
+
+        GenreMasterGetDTO dto = DTOMapper.INSTANCE.convertEntityToGenreMasterGetDTO(gm);
+
+        assertEquals("Horror", dto.getGenre());
+        assertEquals("TheMaster", dto.getCurrentMaster().getUsername());
+        assertEquals(3, dto.getTotalVotesCast());
+    }
+
+    // --- ADDITIONAL MISSING MAPPERS ---
+
+    @Test
+    public void convertEntityToUserPersonalGetDTO_success() {
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("karim");
+        user.setToken("secret-token");
+        user.setBio("Hello world");
+
+        UserPersonalGetDTO dto = DTOMapper.INSTANCE.convertEntityToUserPersonalGetDTO(user);
+
+        assertEquals("secret-token", dto.getToken());
+        assertEquals("Hello world", dto.getBio());
+    }
+
+    @Test
+    public void convertEntityToChatMessageGetDTO_success() {
+        ChatMessage msg = new ChatMessage();
+        msg.setUsername("sender");
+        msg.setMessage("Hello!");
+        msg.setTimestamp(new Date());
+
+        ChatMessageGetDTO dto = DTOMapper.INSTANCE.convertEntityToChatMessageGetDTO(msg);
+
+        assertEquals("sender", dto.getUsername());
+        assertEquals("Hello!", dto.getMessage());
+        assertNotNull(dto.getTimestamp());
+    }
+
+    @Test
+    public void convertEntityToGameGetDTO_verifiesTimerExpression() {
+        Game game = new Game();
+        game.setTimer(100L);
+
+        GameGetDTO dto = DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+
+        assertEquals(50L, dto.getReducedTimeThreshold());
+    }
+
+    @Test
+    public void convertRoomPostDTOtoEntity_success() {
+        RoomPostDTO dto = new RoomPostDTO();
+        dto.setName("Thriller Room");
+
+        Room room = DTOMapper.INSTANCE.convertRoomPostDTOtoEntity(dto);
+
+        assertEquals("Thriller Room", room.getName());
     }
 }

@@ -11,6 +11,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import ch.uzh.ifi.hase.soprafs26.entity.GenreMaster;
+import java.util.HashMap;
+import java.util.Map;
+import ch.uzh.ifi.hase.soprafs26.entity.GenreMaster;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserDeleteDTO;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -632,5 +638,96 @@ public class UserServiceTest {
         Mockito.when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         assertThrows(ResponseStatusException.class, () -> userService.getUserStatistics(99L, "Bearer token"));
+    }
+
+    @Test
+    public void getUserStatistics_statsNull_404NotFound() {
+        testUser.setStatistics(null);
+
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+        Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> userService.getUserStatistics(testUser.getId(), "Bearer some-token"));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("Statistics for this user were not found.", exception.getReason());
+    }
+
+    // --- GENRE MASTER CLEANUP (Tested via deleteUser) ---
+
+    @Test
+    public void deleteUser_userIsMasterWithSuccessor_promotesSuccessor() {
+        UserDeleteDTO dto = new UserDeleteDTO();
+        dto.setPassword("password123");
+
+        User successor = new User();
+        successor.setId(2L);
+        successor.setUsername("nextInLine");
+
+        GenreMaster gm = new GenreMaster();
+        gm.setGenre("Horror");
+        gm.setCurrentMaster(testUser);
+        Map<Long, Integer> votes = new HashMap<>();
+        votes.put(testUser.getId(), 100);
+        votes.put(successor.getId(), 50);
+        gm.setVotes(votes);
+
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+        Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        Mockito.when(userRepository.findById(successor.getId())).thenReturn(Optional.of(successor));
+        Mockito.when(genreMasterRepository.findAll()).thenReturn(Collections.singletonList(gm));
+
+        userService.deleteUser(testUser.getId(), dto, "Bearer token");
+
+        assertFalse(gm.getVotes().containsKey(testUser.getId()));
+        assertEquals(successor, gm.getCurrentMaster());
+        Mockito.verify(genreMasterRepository).save(gm);
+    }
+
+    @Test
+    public void deleteUser_userIsMasterNoSuccessor_clearsMaster() {
+        UserDeleteDTO dto = new UserDeleteDTO();
+        dto.setPassword("password123");
+
+        GenreMaster gm = new GenreMaster();
+        gm.setCurrentMaster(testUser);
+        Map<Long, Integer> votes = new HashMap<>();
+        votes.put(testUser.getId(), 10);
+        gm.setVotes(votes);
+
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+        Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        Mockito.when(genreMasterRepository.findAll()).thenReturn(Collections.singletonList(gm));
+
+        userService.deleteUser(testUser.getId(), dto, "Bearer token");
+
+        assertTrue(gm.getVotes().isEmpty());
+        assertNull(gm.getCurrentMaster());
+    }
+
+    @Test
+    public void deleteUser_userInLeaderboardNotMaster_removesUserOnly() {
+        UserDeleteDTO dto = new UserDeleteDTO();
+        dto.setPassword("password123");
+
+        User actualKing = new User();
+        actualKing.setId(99L);
+
+        GenreMaster gm = new GenreMaster();
+        gm.setCurrentMaster(actualKing);
+        Map<Long, Integer> votes = new HashMap<>();
+        votes.put(actualKing.getId(), 50);
+        votes.put(testUser.getId(), 10);
+        gm.setVotes(votes);
+
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(testUser);
+        Mockito.when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        Mockito.when(genreMasterRepository.findAll()).thenReturn(Collections.singletonList(gm));
+
+        userService.deleteUser(testUser.getId(), dto, "Bearer token");
+
+        assertFalse(gm.getVotes().containsKey(testUser.getId()));
+        assertEquals(actualKing, gm.getCurrentMaster());
     }
 }

@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.entity.GenreMaster;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.repository.*;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.server.ResponseStatusException;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserDeleteDTO;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -439,5 +441,90 @@ public class UserServiceIntegrationTest {
         assertEquals(0, stats.getGamesPlayed());
         assertEquals(0, stats.getGamesWon());
         assertTrue(stats.getWinsByGenre().isEmpty());
+    }
+
+    @Test
+    public void getUserStatistics_invalidUserId_404NotFound() {
+        User authUser = new User();
+        authUser.setUsername("authPlayer");
+        authUser.setPassword("password");
+        authUser = userService.createUser(authUser);
+
+        final Long nonExistentId = 9999L;
+        final String token = "Bearer " + authUser.getToken();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> userService.getUserStatistics(nonExistentId, token));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
+    public void getUserStatistics_invalidToken_401Unauthorized() {
+        User user = new User();
+        user.setUsername("statPlayer");
+        user.setPassword("password");
+        user = userService.createUser(user);
+
+        final Long userId = user.getId();
+
+        assertThrows(ResponseStatusException.class,
+                () -> userService.getUserStatistics(userId, "Bearer invalid-token"));
+    }
+
+    // --- Genre Master Cleanup Integration (via deleteUser) ---
+
+    @Test
+    @Transactional
+    public void deleteUser_isGenreMaster_promotesSuccessorCorrectly() {
+        User king = new User();
+        king.setUsername("horrorKing");
+        king.setPassword("password123");
+        king = userService.createUser(king);
+
+        User successor = new User();
+        successor.setUsername("horrorPrince");
+        successor.setPassword("password123");
+        successor = userService.createUser(successor);
+
+        GenreMaster gm = new GenreMaster();
+        gm.setGenre("Horror");
+        gm.setCurrentMaster(king);
+        gm.getVotes().put(king.getId(), 100);
+        gm.getVotes().put(successor.getId(), 50);
+        genreMasterRepository.save(gm);
+        genreMasterRepository.flush();
+
+        UserDeleteDTO deleteDTO = new UserDeleteDTO();
+        deleteDTO.setPassword("password123");
+        userService.deleteUser(king.getId(), deleteDTO, "Bearer " + king.getToken());
+
+        GenreMaster updatedGm = genreMasterRepository.findByGenre("Horror");
+        assertNotNull(updatedGm);
+        assertFalse(updatedGm.getVotes().containsKey(king.getId()));
+        assertEquals(successor.getId(), updatedGm.getCurrentMaster().getId());
+    }
+
+    @Test
+    public void deleteUser_isGenreMaster_noSuccessor_clearsThrone() {
+        User king = new User();
+        king.setUsername("lonelyKing");
+        king.setPassword("password123");
+        king = userService.createUser(king);
+
+        GenreMaster gm = new GenreMaster();
+        gm.setGenre("Comedy");
+        gm.setCurrentMaster(king);
+        gm.getVotes().put(king.getId(), 10);
+        genreMasterRepository.save(gm);
+        genreMasterRepository.flush();
+
+        UserDeleteDTO deleteDTO = new UserDeleteDTO();
+        deleteDTO.setPassword("password123");
+        userService.deleteUser(king.getId(), deleteDTO, "Bearer " + king.getToken());
+
+        GenreMaster updatedGm = genreMasterRepository.findByGenre("Comedy");
+        assertTrue(updatedGm.getVotes().isEmpty());
+        assertNull(updatedGm.getCurrentMaster());
     }
 }

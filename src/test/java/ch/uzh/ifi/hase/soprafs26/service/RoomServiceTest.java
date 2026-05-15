@@ -515,4 +515,91 @@ public class RoomServiceTest {
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
     }
+
+    // --- CHAT MESSAGE TESTS ---
+
+    @Test
+    public void addChatMessage_success_userInUsersList() {
+        testRoom.getUsers().add(testUser);
+        testRoom.setChat(new ArrayList<>());
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        Room result = roomService.addChatMessage(1L, "Hello world", "Bearer valid-token");
+
+        assertEquals(1, result.getChat().size());
+        assertEquals("testUser", result.getChat().get(0).getUsername());
+        assertEquals("Hello world", result.getChat().get(0).getMessage());
+        verify(roomRepository, times(1)).save(testRoom);
+    }
+
+    @Test
+    public void addChatMessage_success_userIsWriter() {
+        testRoom.getWriters().add(new Writer(testUser));
+        testRoom.setChat(new ArrayList<>());
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        Room result = roomService.addChatMessage(1L, "Writer speaking", "Bearer valid-token");
+
+        assertEquals(1, result.getChat().size());
+        assertEquals("Writer speaking", result.getChat().get(0).getMessage());
+    }
+
+    @Test
+    public void addChatMessage_success_userIsJudge() {
+        testRoom.getJudges().add(new Judge(testUser));
+        testRoom.setChat(new ArrayList<>());
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        Room result = roomService.addChatMessage(1L, "Judge here", "Bearer valid-token");
+
+        assertEquals(1, result.getChat().size());
+        assertEquals("Judge here", result.getChat().get(0).getMessage());
+    }
+
+    @Test
+    public void addChatMessage_roomNotFound_404NotFound() {
+        given(roomRepository.findById(99L)).willReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.addChatMessage(99L, "Valid message", "Bearer valid-token"));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("Room not found", exception.getReason());
+    }
+
+    @Test
+    public void addChatMessage_userNotParticipant_403Forbidden() {
+        // Room exists but testUser is not in any list (Users, Writers, or Judges)
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.addChatMessage(1L, "Intruder message", "Bearer valid-token"));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertEquals("You are not a participant in this room", exception.getReason());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "   "})
+    public void addChatMessage_emptyOrWhitespaceMessage_400BadRequest(String invalidMessage) {
+        testRoom.getUsers().add(testUser);
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.addChatMessage(1L, invalidMessage, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Message cannot be empty", exception.getReason());
+    }
+
+    @Test
+    public void addChatMessage_nullMessage_400BadRequest() {
+        testRoom.getUsers().add(testUser);
+        given(roomRepository.findById(1L)).willReturn(Optional.of(testRoom));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.addChatMessage(1L, null, "Bearer valid-token"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
 }
