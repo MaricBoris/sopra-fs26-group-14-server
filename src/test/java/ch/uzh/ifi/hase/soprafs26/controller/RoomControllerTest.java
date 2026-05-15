@@ -1,12 +1,12 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.entity.*;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.room.ChatMessagePostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.room.RoomRoleDTO;
 import ch.uzh.ifi.hase.soprafs26.service.RoomService;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpStatus;
@@ -507,6 +507,66 @@ public class RoomControllerTest {
                 .header("Authorization", "Bearer token123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("6");
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isNotFound());
+    }
+
+    // --- PUT /rooms/{id}/chat (Send Chat Message) ---
+
+    @Test
+    public void sendChatMessage_validInput_200Ok() throws Exception {
+        Room room = new Room();
+        room.setId(1L);
+        room.setName("TestRoom");
+
+        ChatMessagePostDTO chatDTO = new ChatMessagePostDTO();
+        chatDTO.setMessage("Hello everyone!");
+
+        given(roomService.addChatMessage(anyLong(), anyString(), anyString())).willReturn(room);
+
+        // create request
+        MockHttpServletRequestBuilder putRequest = put("/rooms/1/chat")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(chatDTO));
+
+        // perform and verify
+        mockMvc.perform(putRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(room.getId().intValue())))
+                .andExpect(jsonPath("$.name", is(room.getName())));
+    }
+
+    @Test
+    public void sendChatMessage_invalidToken_401Unauthorized() throws Exception {
+        ChatMessagePostDTO chatDTO = new ChatMessagePostDTO();
+        chatDTO.setMessage("I shouldn't be allowed to talk");
+
+        given(roomService.addChatMessage(anyLong(), anyString(), any()))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Error: reason<string> Go to login and clear local Storage"));
+
+        MockHttpServletRequestBuilder putRequest = put("/rooms/1/chat")
+                .header("Authorization", "InvalidToken")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(chatDTO));
+
+        mockMvc.perform(putRequest)
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void sendChatMessage_roomNotFound_404NotFound() throws Exception {
+        ChatMessagePostDTO chatDTO = new ChatMessagePostDTO();
+        chatDTO.setMessage("Hello into the void");
+
+        given(roomService.addChatMessage(anyLong(), anyString(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Error: Room with roomId was not found"));
+
+        MockHttpServletRequestBuilder putRequest = put("/rooms/99/chat")
+                .header("Authorization", "Bearer token123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(chatDTO));
 
         mockMvc.perform(putRequest)
                 .andExpect(status().isNotFound());
