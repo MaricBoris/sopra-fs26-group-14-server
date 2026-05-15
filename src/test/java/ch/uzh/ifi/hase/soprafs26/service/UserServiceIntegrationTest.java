@@ -2,10 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.entity.Story;
-import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
-import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
-import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
-import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.*;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +39,15 @@ public class UserServiceIntegrationTest {
 
     @Autowired
     private StoryRepository storyRepository;
+
+    @Autowired
+    private UserStatisticsRepository userStatisticsRepository;
+
+    @Autowired
+    private UserAchievementRepository  userAchievementRepository;
+
+    @Autowired
+    private GenreMasterRepository genreMasterRepository;
 
     @BeforeEach
     public void setup() {

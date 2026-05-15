@@ -35,14 +35,12 @@ public interface DTOMapper {
     @Mapping(source = "bio", target = "bio")
 	User convertUserPostDTOtoEntity(UserPostDTO userPostDTO);
 
-    //@Mapping(source = "history", target = "history")
 	@Mapping(source = "id", target = "id")
 	@Mapping(source = "username", target = "username")
     @Mapping(source = "bio", target = "bio")
     @Mapping(source = "creationDate", target = "creationDate")
 	UserGetDTO convertEntityToUserGetDTO(User user);
 
-    //@Mapping(source = "history", target = "history")
     @Mapping(source = "id", target = "id")
     @Mapping(source = "username", target = "username")
     @Mapping(source = "bio", target = "bio")
@@ -131,6 +129,7 @@ public interface DTOMapper {
     @Mapping(source = "icon", target = "icon")
     AchievementGetDTO convertEntityToAchievementGetDTO(Achievement achievement);
 
+    @Mapping(source = "user.username", target = "username")
     @Mapping(source = "id", target = "id")
     @Mapping(source = "achievement", target = "achievement")
     @Mapping(source = "unlockedAt", target = "unlockedAt")

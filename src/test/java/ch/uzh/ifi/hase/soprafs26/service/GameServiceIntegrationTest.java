@@ -57,10 +57,7 @@ public class GameServiceIntegrationTest {
 
     @BeforeEach
     public void setup() {
-        for (User user : userRepository.findAll()) {
-            user.getHistory().clear();
-            userRepository.save(user);
-        }
+
         gameRepository.deleteAll();
         roomRepository.deleteAll();
         userRepository.deleteAll();
@@ -240,34 +237,6 @@ public class GameServiceIntegrationTest {
         Game reloaded = gameRepository.findById(game.getId()).orElse(null);
         assertNotNull(reloaded);
         assertNotNull(reloaded.getStory().getWinner());
-    }
-
-    // --- updateHistory ---
-
-    @Test
-    public void updateHistory_addsStoryToAllPlayers() {
-        Writer writer = new Writer();
-        writer.setUser(user2);
-
-        Judge judge = new Judge(user1);
-
-        Story story = new Story(null, null, new ArrayList<>(), false, null, null, new ArrayList<>());
-
-        Game game = new Game();
-        game.setWriters(List.of(writer));
-        game.setJudges(List.of(judge));
-        game.setStory(story);
-        game = gameRepository.save(game);
-
-        gameService.updateHistory(game);
-
-        User reloadedWriter = userRepository.findById(user2.getId()).orElse(null);
-        User reloadedJudge = userRepository.findById(user1.getId()).orElse(null);
-
-        assertNotNull(reloadedWriter);
-        assertNotNull(reloadedJudge);
-        assertFalse(reloadedWriter.getHistory().isEmpty());
-        assertFalse(reloadedJudge.getHistory().isEmpty());
     }
 
         // --- determineWinner with no votes ---

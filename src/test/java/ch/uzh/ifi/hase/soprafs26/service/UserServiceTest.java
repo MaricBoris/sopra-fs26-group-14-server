@@ -2,8 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
-import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +31,21 @@ public class UserServiceTest {
 
     @Mock
     private StoryRepository storyRepository;
+
+    @Mock
+    private GenreMasterRepository genreMasterRepository;
+
+    @Mock
+    private UserStatisticsRepository userStatisticsRepository;
+
+    @Mock
+    private UserAchievementRepository  userAchievementRepository;
+
+    @Mock
+    private UserStatisticsRepository userStatisticsRepository2;
+
+    @Mock
+    private StoryRatingRepository storyRatingRepository;
 
     @InjectMocks
     private UserService userService;
@@ -398,7 +412,8 @@ public class UserServiceTest {
         
         List<Story> allStories = Arrays.asList(story1, story2);
         
-        given(storyRepository.findAll()).willReturn(allStories);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(storyRepository.findHistoryForUser(any())).willReturn(allStories);
         
 
         List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
@@ -424,7 +439,8 @@ public class UserServiceTest {
         
         List<Story> allStories = Arrays.asList(story);
         
-        given(storyRepository.findAll()).willReturn(allStories);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(storyRepository.findHistoryForUser(any())).willReturn(allStories);
         
     
         List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
@@ -454,7 +470,8 @@ public class UserServiceTest {
         
         List<Story> allStories = Arrays.asList(story);
         
-        given(storyRepository.findAll()).willReturn(allStories);
+        given(userRepository.findById(userId)).willReturn(Optional.of(judge));
+        given(storyRepository.findHistoryForUser(any())).willReturn(allStories);
 
         List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
         
@@ -464,31 +481,24 @@ public class UserServiceTest {
 
     @Test
     public void findAllStoriesOfUser_userHasNone_returnsEmptyList() {
-  
         long userId = 1L;
-        
-        User user1 = new User();
-        user1.setId(2L);
-        
-        User user2 = new User();
-        user2.setId(3L);
-        
-        User user3 = new User();
-        user3.setId(4L);
-        
+
+        User user1 = new User(); user1.setId(2L);
+        User user2 = new User(); user2.setId(3L);
+        User user3 = new User(); user3.setId(4L);
+
         Story story = new Story();
         story.setWinner(user1);
         story.setLoser(user2);
         story.setJudges(Arrays.asList(user3));
-        
-        List<Story> allStories = Arrays.asList(story);
-        
-        given(storyRepository.findAll()).willReturn(allStories);
-        
+
+        User mainUser = new User();
+        mainUser.setId(userId);
+        given(userRepository.findById(userId)).willReturn(Optional.of(mainUser));
+        given(storyRepository.findHistoryForUser(any())).willReturn(new ArrayList<>());
 
         List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
-        
-  
+
         assertEquals(0, result.size());
     }
 
@@ -497,7 +507,10 @@ public class UserServiceTest {
     
         long userId = 1L;
         
-        given(storyRepository.findAll()).willReturn(new ArrayList<>());
+        User mainUser = new User();
+        mainUser.setId(userId);
+        given(userRepository.findById(userId)).willReturn(Optional.of(mainUser));
+        given(storyRepository.findHistoryForUser(any())).willReturn(new ArrayList<>());
         
    
         List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
@@ -529,7 +542,8 @@ public class UserServiceTest {
         
         List<Story> allStories = Arrays.asList(story);
         
-        given(storyRepository.findAll()).willReturn(allStories);
+        given(userRepository.findById(userId)).willReturn(Optional.of(judge1));
+        given(storyRepository.findHistoryForUser(any())).willReturn(allStories);
 
         List<StoryGetDTO> result = userService.findAllStoriesOfUser(userId);
         

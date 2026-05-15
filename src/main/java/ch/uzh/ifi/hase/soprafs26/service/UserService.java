@@ -1,6 +1,9 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.entity.GenreMaster;
 import ch.uzh.ifi.hase.soprafs26.entity.UserStatistics;
+import ch.uzh.ifi.hase.soprafs26.entity.StoryRating;
+import ch.uzh.ifi.hase.soprafs26.repository.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserDeleteDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPasswordPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPutDTO;
@@ -16,12 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.entity.Story;
-import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
-import ch.uzh.ifi.hase.soprafs26.repository.StoryRepository;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * User Service
@@ -36,15 +35,26 @@ public class UserService {
 
 	private final Logger log = LoggerFactory.getLogger(UserService.class);
 
-	private final UserRepository userRepository;
+    private final UserRepository userRepository;
     private final StoryRepository storyRepository;
+    private final UserStatisticsRepository userStatisticsRepository;
+    private final UserAchievementRepository userAchievementRepository;
+    private final GenreMasterRepository genreMasterRepository;
+    private final StoryRatingRepository storyRatingRepository;
 
-	public UserService(@Qualifier("userRepository") UserRepository userRepository, StoryRepository storyRepository) {
-		this.userRepository = userRepository;
+    public UserService(@Qualifier("userRepository") UserRepository userRepository,
+                       StoryRepository storyRepository,
+                       UserStatisticsRepository userStatisticsRepository,
+                       UserAchievementRepository userAchievementRepository,
+                       GenreMasterRepository genreMasterRepository,
+                       StoryRatingRepository storyRatingRepository) {
+        this.userRepository = userRepository;
         this.storyRepository = storyRepository;
-
-
-	}
+        this.userStatisticsRepository = userStatisticsRepository;
+        this.userAchievementRepository = userAchievementRepository;
+        this.genreMasterRepository = genreMasterRepository;
+        this.storyRatingRepository = storyRatingRepository;
+    }
 
 	public List<User> getUsers(String bearerToken) {
         
@@ -183,11 +193,68 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password");
         }
 
+        removeGenreMasterStatus(user);
+        updateStoryRepo(user);
+        updateUserStatsRepo(user);
+        updateStoryRatingRepo(user);
+        updateUserAchievementsRepo(user);
+
         userRepository.delete(user);
         userRepository.flush();
     }
 
+    public void updateStoryRepo(User user) {
+        List<Story> asWinner = storyRepository.findByWinner(user);
+        asWinner.forEach(s -> s.setWinner(null));
+        storyRepository.saveAll(asWinner);
+        storyRepository.flush();
 
+        List<Story> asLoser = storyRepository.findByLoser(user);
+        asLoser.forEach(s -> s.setLoser(null));
+        storyRepository.saveAll(asLoser);
+        storyRepository.flush();
+
+        List<Story> asJudge = storyRepository.findByJudgesContaining(user);
+        asJudge.forEach(s -> s.getJudges().remove(user));
+        storyRepository.saveAll(asJudge);
+        storyRepository.flush();
+    }
+
+    public void updateUserStatsRepo(User user) {
+        userStatisticsRepository.deleteByUser(user);
+        userStatisticsRepository.flush();
+    }
+
+    public void updateUserAchievementsRepo(User user) {
+        userAchievementRepository.deleteByUser(user);
+        userAchievementRepository.flush();
+    }
+
+    private void removeGenreMasterStatus(User user) {
+        Long userId = user.getId();
+        List<GenreMaster> allGenreMasters = genreMasterRepository.findAll();
+
+        for (GenreMaster gm : allGenreMasters) {
+            boolean wasMaster = (gm.getCurrentMaster() != null && gm.getCurrentMaster().getId().equals(userId));
+            boolean wasInLeaderboard = gm.getVotes().containsKey(userId);
+
+            if (wasMaster || wasInLeaderboard) {
+                gm.getVotes().remove(userId);
+
+                if (wasMaster) {
+                    if (gm.getVotes().isEmpty()) {
+                        gm.setCurrentMaster(null);
+                    } else {
+                        Long successorId = Collections.max(gm.getVotes().entrySet(), Map.Entry.comparingByValue()).getKey();
+                        User successor = userRepository.findById(successorId).orElse(null);
+                        gm.setCurrentMaster(successor);
+                    }
+                }
+                genreMasterRepository.save(gm);
+            }
+        }
+        genreMasterRepository.flush();
+    }
         /**
          * This is a helper method that will check the uniqueness criteria of the
          * username and the name
@@ -263,17 +330,22 @@ public class UserService {
         return DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
     }
 
-    public List<StoryGetDTO> findAllStoriesOfUser(long id){
-        List<Story> allStories = storyRepository.findAll();
+    public List<StoryGetDTO> findAllStoriesOfUser(long id) {
+        User user = findUserFromId(id);
+        return storyRepository.findHistoryForUser(user).stream()
+                .map(DTOMapper.INSTANCE::convertEntityToStoryGetDTO)
+                .toList();
+    }
 
-        List<StoryGetDTO> allStoriesFromUser = new ArrayList<>();
-        for (Story story:allStories) {
-            if (story.getWinner().getId().equals(id) || story.getLoser().getId().equals(id) || isAJudge(story, id)){
-                StoryGetDTO getStory = DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
-                allStoriesFromUser.add(getStory);
-            }
-        }
-        return allStoriesFromUser;
+    public void updateStoryRatingRepo(User user) {
+        List<StoryRating> asVoter = storyRatingRepository.findByVoter(user);
+        asVoter.forEach(r -> r.setVoter(null));
+        storyRatingRepository.saveAll(asVoter);
+
+        List<StoryRating> asVotedFor = storyRatingRepository.findByVotedFor(user);
+        asVotedFor.forEach(r -> r.setVotedFor(null));
+        storyRatingRepository.saveAll(asVotedFor);
+        storyRatingRepository.flush();
     }
 
     public Boolean isAJudge(Story story, long id){

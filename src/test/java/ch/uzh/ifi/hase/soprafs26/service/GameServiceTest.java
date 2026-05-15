@@ -575,77 +575,7 @@ public class GameServiceTest {
         verify(gameRepository, atLeastOnce()).save(any());
     }
 
-    // ==================== updateHistory ====================
-
-    @Test
-    public void updateHistory_addsStoryToAllPlayers() {
-        User writerUser = new User();
-        writerUser.setId(1L);
-        User judgeUser = new User();
-        judgeUser.setId(2L);
-
-        Writer writer = new Writer();
-        writer.setId(1L);
-        writer.setUser(writerUser);
-
-        Judge judge = new Judge(judgeUser);
-        judge.setId(1L);
-
-        Story story = new Story();
-
-        Game game = new Game();
-        game.setId(1L);
-        game.setWriters(List.of(writer));
-        game.setJudges(List.of(judge));
-        game.setStory(story);
-
-        gameService.updateHistory(game);
-
-        assertTrue(writerUser.getHistory().contains(story));
-        assertTrue(judgeUser.getHistory().contains(story));
-        verify(userRepository, times(2)).save(any());
-    }
-
-    @Test
-    public void updateHistory_multipleWritersAndJudges_allGetStory() {
-        User writerUser1 = new User();
-        writerUser1.setId(1L);
-        User writerUser2 = new User();
-        writerUser2.setId(2L);
-        User judgeUser1 = new User();
-        judgeUser1.setId(3L);
-        User judgeUser2 = new User();
-        judgeUser2.setId(4L);
-
-        Writer writer1 = new Writer();
-        writer1.setId(1L);
-        writer1.setUser(writerUser1);
-        Writer writer2 = new Writer();
-        writer2.setId(2L);
-        writer2.setUser(writerUser2);
-
-        Judge judge1 = new Judge(judgeUser1);
-        judge1.setId(1L);
-        Judge judge2 = new Judge(judgeUser2);
-        judge2.setId(2L);
-
-        Story story = new Story();
-
-        Game game = new Game();
-        game.setId(1L);
-        game.setWriters(List.of(writer1, writer2));
-        game.setJudges(List.of(judge1, judge2));
-        game.setStory(story);
-
-        gameService.updateHistory(game);
-
-        assertTrue(writerUser1.getHistory().contains(story));
-        assertTrue(writerUser2.getHistory().contains(story));
-        assertTrue(judgeUser1.getHistory().contains(story));
-        assertTrue(judgeUser2.getHistory().contains(story));
-        verify(userRepository, times(4)).save(any());
-    }
-
+   
     // ==================== cleanupGame ====================
 
     @Test

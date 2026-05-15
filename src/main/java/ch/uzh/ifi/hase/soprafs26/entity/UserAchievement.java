@@ -24,7 +24,7 @@ public class UserAchievement implements Serializable {
     private Date unlockedAt = new Date();
 
     @Column(nullable = false)
-    private boolean isDisplayed = false;
+    private boolean isDisplayed = true;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

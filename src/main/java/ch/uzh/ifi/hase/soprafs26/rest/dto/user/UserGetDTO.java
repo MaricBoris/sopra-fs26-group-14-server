@@ -8,7 +8,6 @@ public class UserGetDTO {
 	private String bio;
 	private String username;
 	private Date creationDate;
-	//private History history;
 
 	public Long getId() {
 		return id;
@@ -40,6 +39,4 @@ public class UserGetDTO {
 
     public void setCreationDate(Date creationDate) { this.creationDate = creationDate; }
 
-	//public History getHistory() { return history; }
-    //public void setHistory(History history) { this.history = history; }
 }
