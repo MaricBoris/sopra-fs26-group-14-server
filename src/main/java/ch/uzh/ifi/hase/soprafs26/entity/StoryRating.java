@@ -17,9 +17,11 @@ public class StoryRating implements Serializable {
     private Story story;
  
     @ManyToOne
+    @JoinColumn(name = "voter_id", nullable = true)
     private User voter;
- 
+
     @ManyToOne
+    @JoinColumn(name = "voted_for_id", nullable = true)
     private User votedFor;
  
     @Column(nullable = false)

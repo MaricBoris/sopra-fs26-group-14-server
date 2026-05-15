@@ -133,7 +133,6 @@ public class GameController {
 
         gameService.updateStory(winner, currentGame);
 
-        gameService.updateHistory(currentGame);
 
         gameService.clearVotes(currentGame);
 

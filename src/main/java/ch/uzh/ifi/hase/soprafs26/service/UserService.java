@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.entity.GenreMaster;
 import ch.uzh.ifi.hase.soprafs26.entity.UserStatistics;
+import ch.uzh.ifi.hase.soprafs26.entity.StoryRating;
 import ch.uzh.ifi.hase.soprafs26.repository.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserDeleteDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPasswordPutDTO;
@@ -39,17 +40,20 @@ public class UserService {
     private final UserStatisticsRepository userStatisticsRepository;
     private final UserAchievementRepository userAchievementRepository;
     private final GenreMasterRepository genreMasterRepository;
+    private final StoryRatingRepository storyRatingRepository;
 
     public UserService(@Qualifier("userRepository") UserRepository userRepository,
                        StoryRepository storyRepository,
                        UserStatisticsRepository userStatisticsRepository,
                        UserAchievementRepository userAchievementRepository,
-                       GenreMasterRepository genreMasterRepository) {
+                       GenreMasterRepository genreMasterRepository,
+                       StoryRatingRepository storyRatingRepository) {
         this.userRepository = userRepository;
         this.storyRepository = storyRepository;
         this.userStatisticsRepository = userStatisticsRepository;
         this.userAchievementRepository = userAchievementRepository;
         this.genreMasterRepository = genreMasterRepository;
+        this.storyRatingRepository = storyRatingRepository;
     }
 
 	public List<User> getUsers(String bearerToken) {
@@ -192,6 +196,7 @@ public class UserService {
         removeGenreMasterStatus(user);
         updateStoryRepo(user);
         updateUserStatsRepo(user);
+        updateStoryRatingRepo(user);
         updateUserAchievementsRepo(user);
 
         userRepository.delete(user);
@@ -324,17 +329,22 @@ public class UserService {
         return DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
     }
 
-    public List<StoryGetDTO> findAllStoriesOfUser(long id){
-        List<Story> allStories = storyRepository.findAll();
+    public List<StoryGetDTO> findAllStoriesOfUser(long id) {
+        User user = findUserFromId(id);
+        return storyRepository.findHistoryForUser(user).stream()
+                .map(DTOMapper.INSTANCE::convertEntityToStoryGetDTO)
+                .toList();
+    }
 
-        List<StoryGetDTO> allStoriesFromUser = new ArrayList<>();
-        for (Story story:allStories) {
-            if (story.getWinner().getId().equals(id) || story.getLoser().getId().equals(id) || isAJudge(story, id)){
-                StoryGetDTO getStory = DTOMapper.INSTANCE.convertEntityToStoryGetDTO(story);
-                allStoriesFromUser.add(getStory);
-            }
-        }
-        return allStoriesFromUser;
+    public void updateStoryRatingRepo(User user) {
+        List<StoryRating> asVoter = storyRatingRepository.findByVoter(user);
+        asVoter.forEach(r -> r.setVoter(null));
+        storyRatingRepository.saveAll(asVoter);
+
+        List<StoryRating> asVotedFor = storyRatingRepository.findByVotedFor(user);
+        asVotedFor.forEach(r -> r.setVotedFor(null));
+        storyRatingRepository.saveAll(asVotedFor);
+        storyRatingRepository.flush();
     }
 
     public Boolean isAJudge(Story story, long id){
