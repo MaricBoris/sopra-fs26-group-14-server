@@ -4,6 +4,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.RoomRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -325,5 +326,101 @@ public class RoomServiceIntegrationTest {
 
         Room fromDb = roomRepository.findById(room.getId()).orElseThrow();
         assertEquals(8, fromDb.getMaxRounds());
+    }
+
+    // --- Add Chat Message (PUT /rooms/{id}/chat) ---
+
+    @Test
+    @Transactional
+    public void addChatMessage_success_persistedInDb() {
+        Room room = new Room();
+        room.setName("ChatRoom");
+        room = roomService.createRoom(room, token);
+
+        Room updatedRoom = roomService.addChatMessage(room.getId(), "Hello everyone!", token);
+
+        assertFalse(updatedRoom.getChat().isEmpty());
+        assertEquals("Hello everyone!", updatedRoom.getChat().get(0).getMessage());
+        assertEquals(testUser.getUsername(), updatedRoom.getChat().get(0).getUsername());
+
+        Room fromDb = roomRepository.findById(room.getId()).orElseThrow();
+        assertEquals(1, fromDb.getChat().size());
+        assertEquals("Hello everyone!", fromDb.getChat().get(0).getMessage());
+    }
+
+    @Test
+    public void addChatMessage_success_userIsWriter() {
+        Room room = new Room();
+        room.setName("WriterChatRoom");
+        room = roomService.createRoom(room, token);
+
+        room = roomService.swapRole(room.getId(), "WRITER", token);
+
+        Room updatedRoom = roomService.addChatMessage(room.getId(), "Writer message", token);
+
+        assertEquals(1, updatedRoom.getChat().size());
+        assertEquals("Writer message", updatedRoom.getChat().get(0).getMessage());
+    }
+
+    @Test
+    public void addChatMessage_success_userIsJudge() {
+        Room room = new Room();
+        room.setName("JudgeChatRoom");
+        room = roomService.createRoom(room, token);
+
+        room = roomService.swapRole(room.getId(), "JUDGE", token);
+
+        Room updatedRoom = roomService.addChatMessage(room.getId(), "Judge message", token);
+
+        assertEquals(1, updatedRoom.getChat().size());
+        assertEquals("Judge message", updatedRoom.getChat().get(0).getMessage());
+    }
+
+    @Test
+    public void addChatMessage_userNotParticipant_403Forbidden() {
+        Room room = new Room();
+        room.setName("PrivateRoom");
+        room = roomService.createRoom(room, token);
+
+        User intruder = new User();
+        intruder.setUsername("intruder");
+        intruder.setPassword("pass123");
+        intruder = userService.createUser(intruder);
+        String intruderToken = "Bearer " + intruder.getToken();
+
+        final Long roomId = room.getId();
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.addChatMessage(roomId, "Let me in!", intruderToken));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertEquals("You are not a participant in this room", exception.getReason());
+    }
+
+    @Test
+    public void addChatMessage_roomNotFound_404NotFound() {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.addChatMessage(999L, "Valid message", token));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("Room not found", exception.getReason());
+    }
+
+    @Test
+    public void addChatMessage_emptyMessage_400BadRequest() {
+        Room room = new Room();
+        room.setName("EmptyMsgRoom");
+        room = roomService.createRoom(room, token);
+
+        final Long roomId = room.getId();
+        // Test null message
+        assertThrows(ResponseStatusException.class,
+                () -> roomService.addChatMessage(roomId, null, token));
+
+        // Test empty/whitespace message
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> roomService.addChatMessage(roomId, "   ", token));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Message cannot be empty", exception.getReason());
     }
 }
