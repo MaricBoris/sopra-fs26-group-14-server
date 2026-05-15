@@ -26,6 +26,7 @@ public class RoomService {
     private final RoomRepository roomRepository;
     private final GameRepository gameRepository;
     private final UserService userService;
+    
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Autowired
@@ -33,11 +34,13 @@ public class RoomService {
         this.roomRepository = roomRepository;
         this.gameRepository = gameRepository;
         this.userService = userService;
+         
     }
 
     public Room createRoom(Room newRoom, String bearerToken) {
         String token = userService.extractToken(bearerToken);
         User creator = userService.findUserFromToken(token);
+       // gameService.deleteStaleGameForUser(creator); //lazy cleanup
 
         Room existingRoom = roomRepository.findByName(newRoom.getName());
         if (existingRoom != null) {
@@ -97,6 +100,7 @@ public class RoomService {
     public Room joinRoom(Long roomId, String bearerToken) {
         String token = userService.extractToken(bearerToken);
         User user = userService.findUserFromToken(token);
+       // gameService.deleteStaleGameForUser(user); //lazy clean up
 
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -234,7 +238,7 @@ public class RoomService {
         game.setCurrentRound(1);
         game.setTimer(room.getTimer());
         game.setMaxRounds(room.getMaxRounds());
-        game.setTurnStartedAt(System.currentTimeMillis());
+        game.setTurnStartedAt(System.currentTimeMillis() + 5000L);
         game.setRoundResolved(false);
 
         LinkedHashMap<String, String> darkGenres = new LinkedHashMap<>();

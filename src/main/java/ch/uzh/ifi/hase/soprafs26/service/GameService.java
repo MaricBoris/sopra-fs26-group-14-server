@@ -299,6 +299,32 @@ public class GameService {
         }
     }
 
+    /* Hard cleanup: deletes any game that has existed longer than the maximum
+     possible legitimate game duration. We don't care what the players are doing
+     (could be forgetting the game, a crashing laptop, could be away, doesn't matter): past this point the
+     game is simply deleted. Deliberately generous so we never kill a slow
+     but still valid game.*/
+    @Scheduled(fixedDelay = 60_000) // every minute
+    public void cleanupOldGames() {
+        long now = System.currentTimeMillis();
+        for (Game game : gameRepository.findAll()) {
+            if (game.getStartedAt() == null) continue;
+
+            /*  Max legitimate duration: writing phase + sudden death + voting +
+            result modal, all multiplied by 2 for safety margin*/
+            long writingMs = (long) game.getMaxRounds() * game.getTimer() * 1000L;
+            long maxDurationMs = (writingMs + 60_000L + 70_000L + 20_000L) * 2L;
+
+            if (now - game.getStartedAt() > maxDurationMs) {
+                try {
+                    deleteGame(game);
+                } catch (Exception e) {
+                    // skip, retry next tick
+                }
+            }
+        }
+    }
+
     public void exitGame(Long id, String bearerToken) {
         String token = userService.extractToken(bearerToken);
         Game playedGame=getandCheckGame(id, token);
@@ -611,13 +637,27 @@ public class GameService {
         gameRepository.save(currentGame);
     }
 
-    public void deleteGame(Game currentGame) {
+   public void deleteGame(Game currentGame) {
+        Story orphanStory = currentGame.getStory();
         currentGame.getWriters().clear();
         currentGame.getJudges().clear();
-        currentGame.setStory(null);  
+        currentGame.setStory(null);
         gameRepository.save(currentGame);
         gameRepository.delete(currentGame);
         gameRepository.flush();
+
+        /*  If the story was never finalized (no winner set, not in any users
+        history), it's orphan junk, we delete it. A finalized story has winner != null
+        because updateStory() sets it before the game can be deleted via the
+        result-modal flow.*/
+        if (orphanStory != null && orphanStory.getId() != null && orphanStory.getWinner() == null) {
+            try {
+                storyRepository.delete(orphanStory);
+                storyRepository.flush();
+            } catch (Exception e) {
+                // best effort
+            }
+        }
     }
 
     // 📝 find the active game for the authenticated user (as writer or judge)
@@ -633,6 +673,38 @@ public class GameService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No active game found for this user"));
     }
+
+    
+
+    /*If a user, that is supposed to still be in a game, and tries to start a new one, we delete the old one 
+    public void deleteStaleGameForUser(User user) {
+        Long userId = user.getId();
+
+        
+        for (Game game : gameRepository.findAll()) {
+
+            boolean isWriter = false;
+            for (Writer writer : game.getWriters()) {
+                if (writer.getUser().getId().equals(userId)) {
+                    isWriter = true;
+                    break;
+                }
+            }
+
+            boolean isJudge = false;
+            for (Judge judge : game.getJudges()) {
+                if (judge.getUser().getId().equals(userId)) {
+                    isJudge = true;
+                    break;
+                }
+            }
+           
+            if (isWriter || isJudge) {
+                deleteGame(game);
+                return;
+            }
+        }
+    }*/
 
     public Game assignQuote(Long id, Integer player, String bearerToken) {
         String token = userService.extractToken(bearerToken);
