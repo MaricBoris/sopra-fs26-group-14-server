@@ -2,16 +2,8 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.entity.*;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.game.GameInputDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.user.JudgeGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.user.WriterGetDTO;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.GameStreamService;
-import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.Matchers.is;
@@ -30,7 +22,6 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import ch.uzh.ifi.hase.soprafs26.constant.GamePhase;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -42,7 +33,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -700,5 +690,103 @@ public void streamGame_validInput_200Ok() throws Exception {
 
         mockMvc.perform(postRequest)
                 .andExpect(status().isOk());
+    }
+
+    // --- DELETE /games/{gameId} ---
+
+    @Test
+    public void deleteGame_validInput_200Ok() throws Exception {
+        Game game = new Game();
+        game.setId(1L);
+
+        given(gameService.getGame(anyLong())).willReturn(game);
+        doNothing().when(gameService).deleteGame(any(Game.class));
+        doNothing().when(gameStreamService).sendGameDeletedToAllClients(anyLong());
+
+        MockHttpServletRequestBuilder deleteRequest = delete("/games/1")
+                .header("Authorization", "Bearer token123");
+
+        mockMvc.perform(deleteRequest)
+                .andExpect(status().isOk());
+
+        verify(gameService).deleteGame(game);
+        verify(gameStreamService).sendGameDeletedToAllClients(1L);
+    }
+
+    // --- GET /games/current ---
+
+    @Test
+    public void getCurrentGame_validRequest_200Ok() throws Exception {
+        Game game = createTestGame();
+
+        given(gameService.getGameForUser(anyString())).willReturn(game);
+
+        MockHttpServletRequestBuilder getRequest = get("/games/current")
+                .header("Authorization", "Bearer token123");
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameId", is(1)))
+                .andExpect(jsonPath("$.phase", is("WRITING")));
+    }
+
+    @Test
+    public void getCurrentGame_noActiveGame_404NotFound() throws Exception {
+        given(gameService.getGameForUser(anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "No active game found for user"));
+
+        MockHttpServletRequestBuilder getRequest = get("/games/current")
+                .header("Authorization", "Bearer token123");
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isNotFound());
+    }
+
+    // --- GET /games/{gameid}/quotes ---
+
+    @Test
+    public void fetchQuote_validRequest_200Ok() throws Exception {
+        Game game = createTestGame();
+
+        given(gameService.assignQuote(anyLong(), any(Integer.class), anyString())).willReturn(game);
+
+        MockHttpServletRequestBuilder getRequest = get("/games/1/quotes")
+                .param("player", "1")
+                .header("Authorization", "Bearer token123");
+
+        mockMvc.perform(getRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameId", is(1)));
+
+        verify(gameStreamService).sendGameToAllClients(any(Game.class));
+    }
+
+    // --- POST /games/{gameId}/reduce-time ---
+
+    @Test
+    public void reduceTime_validRequest_200Ok() throws Exception {
+        Game game = createTestGame();
+        game.setTimer(30L); // Simulating reduced time
+
+        given(gameService.reduceTime(anyLong(), anyString())).willReturn(game);
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/reduce-time")
+                .header("Authorization", "Bearer token123");
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timer", is(30)));
+    }
+
+    @Test
+    public void reduceTime_notAuthorized_403Forbidden() throws Exception {
+        given(gameService.reduceTime(anyLong(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Only judges can reduce time"));
+
+        MockHttpServletRequestBuilder postRequest = post("/games/1/reduce-time")
+                .header("Authorization", "Bearer token123");
+
+        mockMvc.perform(postRequest)
+                .andExpect(status().isForbidden());
     }
 }
