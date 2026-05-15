@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
@@ -304,15 +305,15 @@ public class GameServiceTest {
 
     // ==================== addVote and allJudgesVoted ====================
 
-   @Test
+    @Test
     public void addVote_writerIdIsNull_doesNotAddVote() {
         Game game = new Game();
         game.setId(1L);
-        
+
         Writer writer = new Writer();  // Writer exists but ID is null
-        
+
         gameService.addVote(game, writer, new Judge());
-        
+
         Map<Long, Map<Judge, Writer>> allVotes = gameService.getGameVotes();
         assertFalse(allVotes.containsKey(game.getId()));
     }
@@ -575,7 +576,7 @@ public class GameServiceTest {
         verify(gameRepository, atLeastOnce()).save(any());
     }
 
-   
+
     // ==================== cleanupGame ====================
 
     @Test
@@ -830,45 +831,6 @@ public class GameServiceTest {
         assertTrue(result.getStory().getStoryContributions().get(0).getText().length() <= 2000);
     }
 
-   /* @Test
-    public void insertWriterInput_validInput_appendsToStory_clearsDraft_switchesTurn_resetsTimerAndPersists() {
-        Writer activeWriter = makeActiveWriter(11L, 1L, "draft from active writer", "Fantasy");
-        Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
-
-        Judge judge = new Judge(makeUser(3L));
-        judge.setId(13L);
-
-        Game game = makeGame(activeWriter, otherWriter, judge);
-
-        Story story = new Story();
-        story.setStoryText("Once upon a time");
-        game.setStory(story);
-
-        User activeUser = makeUser(1L);
-
-        when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
-        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
-        when(userRepository.findByToken("active-token")).thenReturn(activeUser);
-        when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        long beforeCall = System.currentTimeMillis();
-        Game result = gameService.insertWriterInput(1L, 1, "  there was a dragon  ", "Bearer active-token");
-        long afterCall = System.currentTimeMillis();
-
-        assertNotNull(result.getStory());
-        assertEquals("Once upon a time there was a dragon", result.getStory().getStoryText());
-        assertEquals("", result.getWriters().get(0).getText());
-        assertFalse(result.getWriters().get(0).getTurn());
-        assertTrue(result.getWriters().get(1).getTurn());
-        assertEquals(2, result.getCurrentRound());
-        assertEquals(90L, result.getTimer());
-        assertNotNull(result.getTurnStartedAt());
-        assertTrue(result.getTurnStartedAt() >= beforeCall);
-        assertTrue(result.getTurnStartedAt() <= afterCall);
-
-        verify(gameRepository, times(1)).saveAndFlush(game);
-    }*/
-
     @Test
     public void insertWriterInput_nullStory_createsNewStory() {
         Writer activeWriter = makeActiveWriter(11L, 1L, "draft", "Fantasy");
@@ -955,46 +917,6 @@ public class GameServiceTest {
                 () -> gameService.insertWriterInput(1L, 1, "text", "Bearer active-token"));
     }
 
-   /* @Test
-    public void getGame_expiredTurn_autoSubmitsEmptyRound_switchesTurn_resetsTimerAndPersists() {
-        Writer activeWriter = makeActiveWriter(11L, 1L, "draft that should be cleared on timeout", "Fantasy");
-        Writer otherWriter = makeOtherWriter(12L, 2L, "draft from other writer", "Sci-Fi");
-
-        Judge judge = new Judge(makeUser(3L));
-        judge.setId(13L);
-
-        Game game = makeGame(activeWriter, otherWriter, judge);
-
-        Story story = new Story();
-        story.setStoryText("Existing story");
-        game.setStory(story);
-
-        game.setTimer(1L);
-        game.setTurnStartedAt(System.currentTimeMillis() - 5000L);
-
-        User activeUser = makeUser(1L);
-
-        when(userService.extractToken("Bearer active-token")).thenReturn("active-token");
-        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
-        when(userRepository.findByToken("active-token")).thenReturn(activeUser);
-        when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        long beforeCall = System.currentTimeMillis();
-        Game result = gameService.getGame(1L, "Bearer active-token");
-        long afterCall = System.currentTimeMillis();
-
-        assertEquals("", result.getWriters().get(0).getText());
-        assertFalse(result.getWriters().get(0).getTurn());
-        assertTrue(result.getWriters().get(1).getTurn());
-        assertEquals(2, result.getCurrentRound());
-        assertEquals(90L, result.getTimer());
-        assertNotNull(result.getTurnStartedAt());
-        assertTrue(result.getTurnStartedAt() >= beforeCall);
-        assertTrue(result.getTurnStartedAt() <= afterCall);
-        assertEquals("Existing story", result.getStory().getStoryText());
-
-        verify(gameRepository, times(2)).saveAndFlush(game);
-    }*/
 
     // ==================== assignQuote ====================
 
@@ -1226,5 +1148,343 @@ public class GameServiceTest {
         assertThrows(ResponseStatusException.class, () -> gameService.getGameForUser("Bearer token"));
     }
 
+    // ==================== ADDITIONAL COVERAGE TESTS ====================
 
+    // --- checkIfPlayerDisconnected ---
+
+    @Test
+    public void checkIfPlayerDisconnected_writerDisconnected_throws404AndDeletes() {
+        Game game = new Game();
+        Writer w1 = new Writer(); w1.setLastSeenAt(1000L);
+        game.setWriters(new ArrayList<>(List.of(w1)));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
+            ReflectionTestUtils.invokeMethod(gameService, "checkIfPlayerDisconnected", game, 5000L, 10000L);
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        verify(gameCleanupService).deleteGameAndFlush(game);
+    }
+
+    @Test
+    public void checkIfPlayerDisconnected_oneJudgeDisconnected_removesJudgeAndSaves() {
+        Game game = new Game();
+        Writer w1 = new Writer(); w1.setLastSeenAt(10000L);
+        game.setWriters(new ArrayList<>(List.of(w1)));
+
+        Judge j1 = new Judge(); j1.setLastSeenAt(1000L); // Disconnected
+        Judge j2 = new Judge(); j2.setLastSeenAt(10000L); // Active
+        game.setJudges(new ArrayList<>(List.of(j1, j2)));
+
+        ReflectionTestUtils.invokeMethod(gameService, "checkIfPlayerDisconnected", game, 5000L, 10000L);
+
+        assertEquals(1, game.getJudges().size());
+        assertEquals(j2, game.getJudges().get(0));
+        verify(gameRepository).save(game);
+    }
+
+    @Test
+    public void checkIfPlayerDisconnected_allJudgesDisconnected_throws404AndDeletes() {
+        Game game = new Game();
+        Writer w1 = new Writer(); w1.setLastSeenAt(10000L);
+        game.setWriters(new ArrayList<>(List.of(w1)));
+
+        Judge j1 = new Judge(); j1.setLastSeenAt(1000L); // Disconnected
+        game.setJudges(new ArrayList<>(List.of(j1)));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
+            ReflectionTestUtils.invokeMethod(gameService, "checkIfPlayerDisconnected", game, 5000L, 10000L);
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        verify(gameCleanupService).deleteGameAndFlush(game);
+    }
+
+    // --- truncateToFirstSentence ---
+
+    @Test
+    public void truncateToFirstSentence_emptyString_returnsEmpty() {
+        String result = ReflectionTestUtils.invokeMethod(gameService, "truncateToFirstSentence", "");
+        assertEquals("", result);
+    }
+
+    @Test
+    public void truncateToFirstSentence_noPunctuation_returnsSameString() {
+        String result = ReflectionTestUtils.invokeMethod(gameService, "truncateToFirstSentence", "No punctuation here");
+        assertEquals("No punctuation here", result);
+    }
+
+    @Test
+    public void truncateToFirstSentence_withPunctuation_truncatesCorrectly() {
+        String result = ReflectionTestUtils.invokeMethod(gameService, "truncateToFirstSentence", "First sentence. Second sentence!");
+        assertEquals("First sentence.", result);
+    }
+
+    // --- terminateExpiredTurns ---
+
+    @Test
+    public void terminateExpiredTurns_nonWritingPhase_skips() {
+        Game game = new Game();
+        game.setPhase(GamePhase.FINISHED);
+        when(gameRepository.findAll()).thenReturn(List.of(game));
+
+        assertDoesNotThrow(() -> gameService.terminateExpiredTurns());
+        verify(gameStreamService, never()).sendGameToAllClients(any());
+    }
+
+    @Test
+    public void terminateExpiredTurns_exceptionCaught_skipsAndContinues() {
+        Game game = new Game();
+        game.setPhase(GamePhase.WRITING);
+        game.setCurrentRound(1);
+        game.setTimer(60L);
+        game.setTurnStartedAt(0L); // Expired
+
+        // Trigger exception inside resolveExpiredTurnIfNeeded by not setting writers
+        game.setWriters(new ArrayList<>());
+
+        when(gameRepository.findAll()).thenReturn(List.of(game));
+
+        assertDoesNotThrow(() -> gameService.terminateExpiredTurns());
+        verify(gameStreamService, never()).sendGameToAllClients(any());
+    }
+
+    @Test
+    public void terminateExpiredTurns_roundResolved_sendsStream() {
+        Game game = new Game();
+        game.setPhase(GamePhase.WRITING);
+        game.setMaxRounds(10);
+        game.setCurrentRound(1);
+        game.setTimer(1L);
+        game.setTurnStartedAt(System.currentTimeMillis() - 100000L); // Expired
+
+        Writer w1 = new Writer(); w1.setUser(user(1L)); w1.setTurn(true); w1.setText("Hello.");
+        game.setWriters(new ArrayList<>(List.of(w1, new Writer())));
+
+        Story story = new Story();
+        story.setStoryContributions(new ArrayList<>());
+        game.setStory(story);
+
+        when(gameRepository.findAll()).thenReturn(List.of(game));
+
+        gameService.terminateExpiredTurns();
+
+        // Round should have been incremented
+        assertEquals(2, game.getCurrentRound());
+        verify(gameStreamService).sendGameToAllClients(game);
+    }
+
+    // --- cleanupOldGames ---
+
+    @Test
+    public void cleanupOldGames_startedAtNull_skips() {
+        Game game = new Game();
+        game.setStartedAt(null);
+        when(gameRepository.findAll()).thenReturn(List.of(game));
+
+        assertDoesNotThrow(() -> gameService.cleanupOldGames());
+        verify(gameRepository, never()).delete(any());
+    }
+
+    @Test
+    public void cleanupOldGames_notExpired_skips() {
+        Game game = new Game();
+        game.setStartedAt(System.currentTimeMillis());
+        game.setMaxRounds(10);
+        game.setTimer(60L);
+        when(gameRepository.findAll()).thenReturn(List.of(game));
+
+        gameService.cleanupOldGames();
+        verify(gameRepository, never()).delete(any());
+    }
+
+    @Test
+    public void cleanupOldGames_expired_deletesGame() {
+        Game game = new Game();
+        game.setMaxRounds(10);
+        game.setTimer(60L);
+        game.setWriters(new ArrayList<>());
+        game.setJudges(new ArrayList<>());
+
+        // Started long time ago (expired)
+        game.setStartedAt(0L);
+        when(gameRepository.findAll()).thenReturn(List.of(game));
+
+        gameService.cleanupOldGames();
+        verify(gameRepository).delete(game);
+    }
+
+    @Test
+    public void cleanupOldGames_expired_exceptionCaught() {
+        Game game = new Game();
+        game.setMaxRounds(10);
+        game.setTimer(60L);
+        game.setStartedAt(0L);
+        when(gameRepository.findAll()).thenReturn(List.of(game));
+
+        // Force an exception during delete
+        doThrow(new RuntimeException("DB Error")).when(gameRepository).delete(game);
+
+        assertDoesNotThrow(() -> gameService.cleanupOldGames());
+    }
+
+    // --- deleteGame ---
+
+    @Test
+    public void deleteGame_orphanStory_deletesStory() {
+        Game game = new Game();
+        Story orphanStory = new Story();
+        orphanStory.setId(1L);
+        orphanStory.setWinner(null); // Orphan
+
+        game.setStory(orphanStory);
+        game.setWriters(new ArrayList<>());
+        game.setJudges(new ArrayList<>());
+
+        gameService.deleteGame(game);
+
+        verify(storyRepository).delete(orphanStory);
+    }
+
+    @Test
+    public void deleteGame_finalizedStory_doesNotDeleteStory() {
+        Game game = new Game();
+        Story finalizedStory = new Story();
+        finalizedStory.setId(1L);
+        finalizedStory.setWinner(new User()); // Has winner -> finalized
+
+        game.setStory(finalizedStory);
+        game.setWriters(new ArrayList<>());
+        game.setJudges(new ArrayList<>());
+
+        gameService.deleteGame(game);
+
+        verify(storyRepository, never()).delete(any(Story.class));
+    }
+
+    @Test
+    public void deleteGame_orphanStory_exceptionCaught() {
+        Game game = new Game();
+        Story orphanStory = new Story();
+        orphanStory.setId(1L);
+        orphanStory.setWinner(null);
+        game.setStory(orphanStory);
+        game.setWriters(new ArrayList<>());
+        game.setJudges(new ArrayList<>());
+
+        doThrow(new RuntimeException("Delete Error")).when(storyRepository).delete(orphanStory);
+
+        assertDoesNotThrow(() -> gameService.deleteGame(game));
+    }
+
+    // --- reduceTime ---
+
+    @Test
+    public void reduceTime_success_reducesTime() {
+        Game game = new Game();
+        game.setId(1L);
+        game.setPhase(GamePhase.WRITING);
+        game.setTimer(60L);
+        game.setTurnStartedAt(System.currentTimeMillis() - 10000L); // 10s elapsed
+
+        User judgeUser = user(1L);
+        game.setJudges(new ArrayList<>(List.of(new Judge(judgeUser))));
+
+        Writer w1 = new Writer(); w1.setTurn(true); w1.setReduceTimeReceived(0);
+        game.setWriters(new ArrayList<>(List.of(w1)));
+
+        when(userService.extractToken(anyString())).thenReturn("token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("token")).thenReturn(judgeUser);
+
+        Game result = gameService.reduceTime(1L, "Bearer token");
+
+        assertEquals(1, w1.getReduceTimeReceived());
+        verify(gameRepository).save(game);
+    }
+
+    @Test
+    public void reduceTime_notWritingPhase_throws409() {
+        Game game = new Game();
+        game.setId(1L);
+        game.setPhase(GamePhase.FINISHED);
+
+        when(userService.extractToken("token")).thenReturn("token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("token")).thenReturn(user(1L));
+
+        assertThrows(ResponseStatusException.class, () -> gameService.reduceTime(1L, "Bearer token"));
+    }
+
+    @Test
+    public void reduceTime_notJudge_throws403() {
+        Game game = new Game();
+        game.setId(1L);
+        game.setPhase(GamePhase.WRITING);
+        game.setJudges(new ArrayList<>()); // No judges
+
+        when(userService.extractToken("token")).thenReturn("token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("token")).thenReturn(user(1L)); // User is not judge
+
+        assertThrows(ResponseStatusException.class, () -> gameService.reduceTime(1L, "Bearer token"));
+    }
+
+    @Test
+    public void reduceTime_noActiveWriter_throws409() {
+        Game game = new Game();
+        game.setId(1L);
+        game.setPhase(GamePhase.WRITING);
+        User judgeUser = user(1L);
+        game.setJudges(new ArrayList<>(List.of(new Judge(judgeUser))));
+
+        Writer w1 = new Writer(); w1.setTurn(false); // Not active
+        game.setWriters(new ArrayList<>(List.of(w1)));
+
+        when(userService.extractToken("token")).thenReturn("token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("token")).thenReturn(judgeUser);
+
+        assertThrows(ResponseStatusException.class, () -> gameService.reduceTime(1L, "Bearer token"));
+    }
+
+    @Test
+    public void reduceTime_limitReached_throws409() {
+        Game game = new Game();
+        game.setId(1L);
+        game.setPhase(GamePhase.WRITING);
+        User judgeUser = user(1L);
+        game.setJudges(new ArrayList<>(List.of(new Judge(judgeUser))));
+
+        Writer w1 = new Writer(); w1.setTurn(true); w1.setReduceTimeReceived(1); // Already reached limit
+        game.setWriters(new ArrayList<>(List.of(w1)));
+
+        when(userService.extractToken("token")).thenReturn("token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("token")).thenReturn(judgeUser);
+
+        assertThrows(ResponseStatusException.class, () -> gameService.reduceTime(1L, "Bearer token"));
+    }
+
+    @Test
+    public void reduceTime_remainingTimeTooLow_throws409() {
+        Game game = new Game();
+        game.setId(1L);
+        game.setPhase(GamePhase.WRITING);
+        game.setTimer(60L);
+        // Turn started 40s ago -> 20s remaining. 20s < 30s threshold -> throws 409
+        game.setTurnStartedAt(System.currentTimeMillis() - 40000L);
+
+        User judgeUser = user(1L);
+        game.setJudges(new ArrayList<>(List.of(new Judge(judgeUser))));
+
+        Writer w1 = new Writer(); w1.setTurn(true); w1.setReduceTimeReceived(0);
+        game.setWriters(new ArrayList<>(List.of(w1)));
+
+        when(userService.extractToken("token")).thenReturn("token");
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("token")).thenReturn(judgeUser);
+
+        assertThrows(ResponseStatusException.class, () -> gameService.reduceTime(1L, "Bearer token"));
+    }
 }

@@ -55,6 +55,38 @@ public class GameServiceIntegrationTest {
     private User user2;
     private User user3;
 
+    // --- Helpers ---
+
+    private Game setupActiveGame() {
+        Game game = new Game();
+        game.setPhase(GamePhase.WRITING);
+        game.setTimer(60L);
+        game.setTurnStartedAt(System.currentTimeMillis() - 10000L); // 10s elapsed
+        game.setMaxRounds(10);
+        game.setCurrentRound(1);
+        game.setRoundResolved(false);
+
+        Judge judge = new Judge(user1);
+
+        Writer w1 = new Writer();
+        w1.setUser(user2);
+        w1.setTurn(true);
+        w1.setReduceTimeReceived(0);
+
+        Writer w2 = new Writer();
+        w2.setUser(user3);
+        w2.setTurn(false);
+
+        game.setJudges(new ArrayList<>(List.of(judge)));
+        game.setWriters(new ArrayList<>(List.of(w1, w2)));
+
+        Story story = new Story();
+        story.setStoryContributions(new ArrayList<>());
+        game.setStory(story);
+
+        return gameRepository.saveAndFlush(game);
+    }
+
     @BeforeEach
     public void setup() {
 
@@ -272,4 +304,141 @@ public class GameServiceIntegrationTest {
         assertEquals(GamePhase.FINISHED, result.getPhase());
     }
 
+    @Test
+    public void reduceTime_validJudge_reducesTimeAndPersists() {
+        Game game = setupActiveGame();
+        Long originalTurnStartedAt = game.getTurnStartedAt();
+
+        Game result = gameService.reduceTime(game.getId(), "Bearer " + user1.getToken());
+
+        assertEquals(1, result.getWriters().get(0).getReduceTimeReceived());
+        assertTrue(result.getTurnStartedAt() < originalTurnStartedAt);
+    }
+
+    @Test
+    public void reduceTime_userNotJudge_throws403() {
+        Game game = setupActiveGame();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> gameService.reduceTime(game.getId(), "Bearer " + user2.getToken()));
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+    }
+
+    @Test
+    public void reduceTime_wrongPhase_throws409() {
+        Game game = setupActiveGame();
+        game.setPhase(GamePhase.SUDDEN_DEATH);
+        gameRepository.saveAndFlush(game);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> gameService.reduceTime(game.getId(), "Bearer " + user1.getToken()));
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+    }
+
+    // --- getGameForUser (Integration) ---
+
+    @Test
+    public void getGameForUser_userInGame_returnsGame() {
+        Game game = setupActiveGame();
+
+        Game found = gameService.getGameForUser("Bearer " + user2.getToken());
+
+        assertEquals(game.getId(), found.getId());
+    }
+
+    @Test
+    public void getGameForUser_userNotInGame_throws404() {
+        setupActiveGame();
+
+        User outsider = new User();
+        outsider.setUsername("outsider");
+        outsider.setPassword("pass");
+        outsider = userService.createUser(outsider);
+
+        final String token = "Bearer " + outsider.getToken();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> gameService.getGameForUser(token));
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    // --- exitGame (Integration) ---
+
+    @Test
+    public void exitGame_writerLeaves_deletesGameDueToLackOfPlayers() {
+        Game game = setupActiveGame();
+        Long gameId = game.getId();
+
+        gameService.exitGame(gameId, "Bearer " + user2.getToken());
+
+        assertTrue(gameRepository.findById(gameId).isEmpty());
+    }
+
+    @Test
+    public void exitGame_outsiderLeaves_throws403() {
+        Game game = setupActiveGame();
+
+        User outsider = new User();
+        outsider.setUsername("outsider2");
+        outsider.setPassword("pass");
+        outsider = userService.createUser(outsider);
+
+        User finalOutsider = outsider;
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> gameService.exitGame(game.getId(), "Bearer " + finalOutsider.getToken()));
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+    }
+
+    // --- saveWriterDraft (Integration) ---
+
+    @Test
+    public void saveWriterDraft_validWriterTurn_savesDraft() {
+        Game game = setupActiveGame();
+
+        gameService.saveWriterDraft(game.getId(), "My draft text", "Bearer " + user2.getToken());
+
+        Game fromDb = gameRepository.findById(game.getId()).orElseThrow();
+        assertEquals("My draft text", fromDb.getWriters().get(0).getText());
+    }
+
+    @Test
+    public void saveWriterDraft_wrongTurn_throws403() {
+        Game game = setupActiveGame();
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> gameService.saveWriterDraft(game.getId(), "Draft", "Bearer " + user3.getToken()));
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+    }
+
+    // --- insertWriterInput (Integration) ---
+
+    @Test
+    public void insertWriterInput_validInput_persistsAndSwitchesTurn() {
+        Game game = setupActiveGame();
+        int initialRound = game.getCurrentRound();
+
+        gameService.insertWriterInput(game.getId(), 1, "The end.", "Bearer " + user2.getToken());
+
+        Game fromDb = gameRepository.findById(game.getId()).orElseThrow();
+
+        Writer submittingWriter = fromDb.getWriters().stream()
+                .filter(w -> w.getUser().getId().equals(user2.getId()))
+                .findFirst()
+                .orElseThrow();
+
+        Writer otherWriter = fromDb.getWriters().stream()
+                .filter(w -> w.getUser().getId().equals(user3.getId()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("", submittingWriter.getText());
+
+        assertFalse(fromDb.getStory().getStoryContributions().isEmpty());
+        assertEquals("The end.", fromDb.getStory().getStoryContributions().get(0).getText());
+
+        assertFalse(submittingWriter.getTurn());
+        assertTrue(otherWriter.getTurn());
+
+        assertTrue(fromDb.getCurrentRound() > initialRound);
+    }
 }
