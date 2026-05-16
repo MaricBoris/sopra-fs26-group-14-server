@@ -2,7 +2,9 @@ package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.entity.Story;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.entity.UserStatistics;
 import ch.uzh.ifi.hase.soprafs26.repository.*;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.stats.LeaderboardEntryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -613,6 +615,134 @@ public class UserServiceTest {
         Boolean result = userService.isAJudge(story, userId);
   
         assertTrue(result);
+    }
+
+    // --- LEADERBOARD (getLeaderboard) ---
+
+    @Test
+    public void getLeaderboard_noGenre_returnsSortedByTotalWins() {
+        UserStatistics stats1 = new UserStatistics();
+        stats1.setGamesWon(3);
+
+        UserStatistics stats2 = new UserStatistics();
+        stats2.setGamesWon(7);
+
+        User user1 = new User(); user1.setId(2L); user1.setUsername("alice"); user1.setStatistics(stats1);
+        User user2 = new User(); user2.setId(3L); user2.setUsername("bob");   user2.setStatistics(stats2);
+
+        Mockito.when(userRepository.findByToken("some-token")).thenReturn(testUser);
+        Mockito.when(userRepository.findAll()).thenReturn(Arrays.asList(user1, user2));
+
+        List<LeaderboardEntryGetDTO> result = userService.getLeaderboard(null, 10, "Bearer some-token");
+
+        assertEquals(2, result.size());
+        assertEquals("bob", result.get(0).getUsername());
+        assertEquals(7, result.get(0).getScore());
+        assertEquals("alice", result.get(1).getUsername());
+    }
+
+    @Test
+    public void getLeaderboard_withGenre_returnsSortedByGenreWins() {
+        UserStatistics stats1 = new UserStatistics();
+        stats1.getWinsByGenre().put("Horror", 5);
+
+        UserStatistics stats2 = new UserStatistics();
+        stats2.getWinsByGenre().put("Horror", 2);
+
+        User user1 = new User(); user1.setId(2L); user1.setUsername("horrorKing"); user1.setStatistics(stats1);
+        User user2 = new User(); user2.setId(3L); user2.setUsername("horrorFan");  user2.setStatistics(stats2);
+
+        Mockito.when(userRepository.findByToken("some-token")).thenReturn(testUser);
+        Mockito.when(userRepository.findAll()).thenReturn(Arrays.asList(user1, user2));
+
+        List<LeaderboardEntryGetDTO> result = userService.getLeaderboard("Horror", 10, "Bearer some-token");
+
+        assertEquals(2, result.size());
+        assertEquals("horrorKing", result.get(0).getUsername());
+        assertEquals(5, result.get(0).getScore());
+    }
+
+    @Test
+    public void getLeaderboard_zeroWinsExcluded_notInResult() {
+        UserStatistics statsWithWins = new UserStatistics();
+        statsWithWins.setGamesWon(3);
+
+        UserStatistics statsNoWins = new UserStatistics();
+        statsNoWins.setGamesWon(0);
+
+        User winner = new User(); winner.setId(2L); winner.setUsername("winner"); winner.setStatistics(statsWithWins);
+        User loser  = new User(); loser.setId(3L);  loser.setUsername("loser");   loser.setStatistics(statsNoWins);
+
+        Mockito.when(userRepository.findByToken("some-token")).thenReturn(testUser);
+        Mockito.when(userRepository.findAll()).thenReturn(Arrays.asList(winner, loser));
+
+        List<LeaderboardEntryGetDTO> result = userService.getLeaderboard(null, 10, "Bearer some-token");
+
+        assertEquals(1, result.size());
+        assertEquals("winner", result.get(0).getUsername());
+    }
+
+    @Test
+    public void getLeaderboard_nullStatisticsUser_skippedInResult() {
+        UserStatistics stats = new UserStatistics();
+        stats.setGamesWon(4);
+
+        User withStats    = new User(); withStats.setId(2L);    withStats.setUsername("hasStats");  withStats.setStatistics(stats);
+        User withoutStats = new User(); withoutStats.setId(3L); withoutStats.setUsername("noStats"); withoutStats.setStatistics(null);
+
+        Mockito.when(userRepository.findByToken("some-token")).thenReturn(testUser);
+        Mockito.when(userRepository.findAll()).thenReturn(Arrays.asList(withStats, withoutStats));
+
+        List<LeaderboardEntryGetDTO> result = userService.getLeaderboard(null, 10, "Bearer some-token");
+
+        assertEquals(1, result.size());
+        assertEquals("hasStats", result.get(0).getUsername());
+    }
+
+    @Test
+    public void getLeaderboard_limitApplied_returnsOnlyTopN() {
+        List<User> users = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            UserStatistics s = new UserStatistics();
+            s.setGamesWon(i);
+            User u = new User();
+            u.setId((long) i + 10);
+            u.setUsername("user" + i);
+            u.setStatistics(s);
+            users.add(u);
+        }
+
+        Mockito.when(userRepository.findByToken("some-token")).thenReturn(testUser);
+        Mockito.when(userRepository.findAll()).thenReturn(users);
+
+        List<LeaderboardEntryGetDTO> result = userService.getLeaderboard(null, 3, "Bearer some-token");
+
+        assertEquals(3, result.size());
+        assertEquals(5, result.get(0).getScore());
+    }
+
+    @Test
+    public void getLeaderboard_invalidToken_401Unauthorized() {
+        Mockito.when(userRepository.findByToken(anyString())).thenReturn(null);
+
+        assertThrows(ResponseStatusException.class,
+                () -> userService.getLeaderboard(null, 10, "Bearer invalid-token"));
+    }
+
+    @Test
+    public void getLeaderboard_blankGenre_treatedAsOverall() {
+        UserStatistics stats = new UserStatistics();
+        stats.setGamesWon(2);
+
+        User user = new User(); user.setId(2L); user.setUsername("player"); user.setStatistics(stats);
+
+        Mockito.when(userRepository.findByToken("some-token")).thenReturn(testUser);
+        Mockito.when(userRepository.findAll()).thenReturn(Collections.singletonList(user));
+
+        List<LeaderboardEntryGetDTO> result = userService.getLeaderboard("   ", 10, "Bearer some-token");
+
+        assertEquals(1, result.size());
+        assertEquals(2, result.get(0).getScore());
     }
 
     // --- USER STATISTICS (getUserStatistics) ---

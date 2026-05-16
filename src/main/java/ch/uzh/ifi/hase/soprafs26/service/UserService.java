@@ -8,6 +8,7 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserDeleteDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPasswordPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.UserPutDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.StoryGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.stats.LeaderboardEntryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -371,5 +372,51 @@ public class UserService {
         }
 
         return stats;
+    }
+
+   public List<LeaderboardEntryGetDTO> getLeaderboard(String genre, int limit, String bearerToken) {
+        
+        findUserFromToken(extractToken(bearerToken));
+
+        List<User> users = userRepository.findAll();
+        List<LeaderboardEntryGetDTO> leaderboard = new ArrayList<>();
+
+        // Build a DTO for every user that has statistics and at least 1 win
+        for (User user : users) {
+            UserStatistics stats = user.getStatistics();
+            if (stats == null) {
+                continue; // skip users without statistics
+            }
+
+            // Pick the score: overall wins or wins in the chosen genre
+            int score;
+            if (genre == null || genre.isBlank()) {
+                score = (stats.getGamesWon() == null) ? 0 : stats.getGamesWon();
+            } else {
+                score = stats.getWinsByGenre().getOrDefault(genre, 0); //checks, if there is something for this genre key, otherwise it gives back the value 0
+            }
+
+            // Hide players with 0 wins, they shouldn't appear on the leaderboard
+            if (score <= 0) {
+                continue;
+            }
+
+            LeaderboardEntryGetDTO dto = new LeaderboardEntryGetDTO();
+            dto.setUserId(user.getId());
+            dto.setUsername(user.getUsername());
+            dto.setScore(score);
+            leaderboard.add(dto);
+        }
+
+        // Sort by score, highest first
+        leaderboard.sort((a, b) -> b.getScore() - a.getScore());
+        //sorts the list in place, takes comparator function, if result is negative, a comes before b, if it is 0, then order doesn't matter, if it is positive, b comes before a
+
+        // Keep only the top limit entries
+        if (leaderboard.size() > limit) {
+            leaderboard = leaderboard.subList(0, limit);
+        }
+
+        return leaderboard;
     }
 }

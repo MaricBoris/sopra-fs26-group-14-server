@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 import ch.uzh.ifi.hase.soprafs26.entity.UserStatistics;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.stats.UserStatisticsGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.stats.LeaderboardEntryGetDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -167,5 +168,14 @@ public class UserController {
         UserStatistics stats = userService.getUserStatistics(userId, bearerToken);
 
         return DTOMapper.INSTANCE.convertEntityToUserStatisticsGetDTO(stats);
+    }
+    @GetMapping("/leaderboard")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public List<LeaderboardEntryGetDTO> getLeaderboard(
+            @RequestParam(value = "genre", required = false) String genre,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") int limit,
+            @RequestHeader("Authorization") String bearerToken) {
+        return userService.getLeaderboard(genre, limit, bearerToken);
     }
 }

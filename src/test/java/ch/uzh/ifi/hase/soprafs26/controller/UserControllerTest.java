@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.stats.LeaderboardEntryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.user.*;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -390,6 +391,89 @@ public class UserControllerTest {
         mockMvc.perform(getRequest)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail", containsString("Error: The provided id")));
+    }
+
+    // --- LEADERBOARD (GET /leaderboard) ---
+
+    @Test
+    public void getLeaderboard_noParams_200Ok() throws Exception {
+        LeaderboardEntryGetDTO entry1 = new LeaderboardEntryGetDTO();
+        entry1.setUserId(1L);
+        entry1.setUsername("topPlayer");
+        entry1.setScore(10);
+
+        LeaderboardEntryGetDTO entry2 = new LeaderboardEntryGetDTO();
+        entry2.setUserId(2L);
+        entry2.setUsername("secondPlayer");
+        entry2.setScore(5);
+
+        given(userService.getLeaderboard(isNull(), eq(10), anyString()))
+                .willReturn(Arrays.asList(entry1, entry2));
+
+        mockMvc.perform(get("/leaderboard")
+                        .header("Authorization", "Bearer some-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].username", is("topPlayer")))
+                .andExpect(jsonPath("$[0].score", is(10)))
+                .andExpect(jsonPath("$[1].username", is("secondPlayer")));
+    }
+
+    @Test
+    public void getLeaderboard_withGenreFilter_200Ok() throws Exception {
+        LeaderboardEntryGetDTO entry = new LeaderboardEntryGetDTO();
+        entry.setUserId(1L);
+        entry.setUsername("horrorKing");
+        entry.setScore(7);
+
+        given(userService.getLeaderboard(eq("Horror"), eq(10), anyString()))
+                .willReturn(Collections.singletonList(entry));
+
+        mockMvc.perform(get("/leaderboard")
+                        .param("genre", "Horror")
+                        .header("Authorization", "Bearer some-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].username", is("horrorKing")))
+                .andExpect(jsonPath("$[0].score", is(7)));
+    }
+
+    @Test
+    public void getLeaderboard_withLimitParam_200Ok() throws Exception {
+        LeaderboardEntryGetDTO entry = new LeaderboardEntryGetDTO();
+        entry.setUserId(1L);
+        entry.setUsername("onlyOne");
+        entry.setScore(3);
+
+        given(userService.getLeaderboard(isNull(), eq(1), anyString()))
+                .willReturn(Collections.singletonList(entry));
+
+        mockMvc.perform(get("/leaderboard")
+                        .param("limit", "1")
+                        .header("Authorization", "Bearer some-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+    }
+
+    @Test
+    public void getLeaderboard_unauthorizedToken_401Unauthorized() throws Exception {
+        given(userService.getLeaderboard(any(), anyInt(), anyString()))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
+
+        mockMvc.perform(get("/leaderboard")
+                        .header("Authorization", "Bearer invalid-token"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void getLeaderboard_emptyResult_200Ok() throws Exception {
+        given(userService.getLeaderboard(any(), anyInt(), anyString()))
+                .willReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/leaderboard")
+                        .header("Authorization", "Bearer some-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
     }
 
     // --- USER STATISTICS (GET /stats/user/{userId}) ---
